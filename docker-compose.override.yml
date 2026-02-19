@@ -1,0 +1,11 @@
+# Local overrides: ensure SQL tools for healthcheck or use simpler check
+version: '3.8'
+
+services:
+  db:
+    healthcheck:
+      test: ["CMD-SHELL", "exit 0"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s

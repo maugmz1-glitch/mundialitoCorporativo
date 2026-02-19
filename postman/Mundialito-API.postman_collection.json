@@ -1,0 +1,51 @@
+{
+  "info": { "name": "Mundialito API", "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json" },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5000" },
+    { "key": "idempotencyKey", "value": "{{$guid}}" }
+  ],
+  "item": [
+    {
+      "name": "Teams",
+      "item": [
+        { "name": "List teams (paginated)", "request": { "method": "GET", "url": "{{baseUrl}}/api/teams?pageNumber=1&pageSize=10&sortBy=name&sortDirection=asc", "header": [] } },
+        { "name": "List teams (filter by name)", "request": { "method": "GET", "url": "{{baseUrl}}/api/teams?name=Alpha", "header": [] } },
+        { "name": "Get team by ID", "request": { "method": "GET", "url": "{{baseUrl}}/api/teams/11111111-1111-1111-1111-111111111101", "header": [] } },
+        { "name": "Create team (idempotent)", "request": { "method": "POST", "header": [{ "key": "Idempotency-Key", "value": "{{idempotencyKey}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"name\":\"New Team\",\"logoUrl\":null}" }, "url": "{{baseUrl}}/api/teams" } },
+        { "name": "Update team", "request": { "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"name\":\"Updated Team\",\"logoUrl\":\"https://example.com/logo.png\"}" }, "url": "{{baseUrl}}/api/teams/11111111-1111-1111-1111-111111111101" } },
+        { "name": "Delete team", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/teams/11111111-1111-1111-1111-111111111101" } }
+      ]
+    },
+    {
+      "name": "Players",
+      "item": [
+        { "name": "List players (paginated)", "request": { "method": "GET", "url": "{{baseUrl}}/api/players?pageNumber=1&pageSize=10&sortBy=lastName&sortDirection=asc", "header": [] } },
+        { "name": "List players (filter by team)", "request": { "method": "GET", "url": "{{baseUrl}}/api/players?teamId=11111111-1111-1111-1111-111111111101", "header": [] } },
+        { "name": "Create player (idempotent)", "request": { "method": "POST", "header": [{ "key": "Idempotency-Key", "value": "{{idempotencyKey}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"teamId\":\"11111111-1111-1111-1111-111111111101\",\"firstName\":\"John\",\"lastName\":\"Doe\",\"jerseyNumber\":\"7\",\"position\":\"Forward\"}" }, "url": "{{baseUrl}}/api/players" } }
+      ]
+    },
+    {
+      "name": "Matches",
+      "item": [
+        { "name": "List matches (paginated)", "request": { "method": "GET", "url": "{{baseUrl}}/api/matches?pageNumber=1&pageSize=10", "header": [] } },
+        { "name": "List matches (filter by status)", "request": { "method": "GET", "url": "{{baseUrl}}/api/matches?status=2", "header": [] } },
+        { "name": "Create match (idempotent)", "request": { "method": "POST", "header": [{ "key": "Idempotency-Key", "value": "{{idempotencyKey}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"homeTeamId\":\"11111111-1111-1111-1111-111111111101\",\"awayTeamId\":\"11111111-1111-1111-1111-111111111102\",\"scheduledAtUtc\":\"2025-06-01T15:00:00Z\",\"venue\":\"Stadium A\"}" }, "url": "{{baseUrl}}/api/matches" } },
+        { "name": "Set match result (PATCH)", "request": { "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"homeScore\":2,\"awayScore\":1}" }, "url": "{{baseUrl}}/api/matches/{{matchId}}/result" } }
+      ]
+    },
+    {
+      "name": "Standings",
+      "item": [
+        { "name": "Get standings", "request": { "method": "GET", "url": "{{baseUrl}}/api/standings", "header": [] } },
+        { "name": "Get top scorers", "request": { "method": "GET", "url": "{{baseUrl}}/api/standings/top-scorers?limit=10", "header": [] } }
+      ]
+    },
+    {
+      "name": "Error scenarios",
+      "item": [
+        { "name": "404 team not found", "request": { "method": "GET", "url": "{{baseUrl}}/api/teams/00000000-0000-0000-0000-000000000000", "header": [] } },
+        { "name": "400 validation (empty name)", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"name\":\"\",\"logoUrl\":null}" }, "url": "{{baseUrl}}/api/teams" } }
+      ]
+    }
+  ]
+}
