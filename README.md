@@ -2,6 +2,20 @@
 
 Enterprise-style tournament management with Clean Architecture, CQRS, EF Core (writes), Dapper (reads), Result pattern, idempotency, and a Next.js frontend.
 
+## Subir a GitHub
+
+El repo incluye las ramas **main**, **development** y **release**. Pasos: crear un repositorio nuevo en GitHub (sin README/.gitignore), luego en la raíz del proyecto:
+
+```powershell
+git remote add origin https://github.com/TU_USUARIO/TU_REPO.git
+git push -u origin main
+git push -u origin development
+git push -u origin release
+```
+
+O usa el script: `.\scripts\push-to-github.ps1 -GitHubUrl "https://github.com/TU_USUARIO/TU_REPO.git"`.  
+Guía completa: **docs/SUBIR_A_GITHUB.md**.
+
 ## Features
 
 - **Teams** – CRUD, list with filters, pagination, sorting
