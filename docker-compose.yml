@@ -1,6 +1,5 @@
-version: '3.8'
-
 # Todos los servicios usan contenedores Linux (linux/amd64).
+# (version: '3.8' obsoleto en Docker Compose v2+; se omite.)
 # En Windows con Docker Desktop asegura que no se usen contenedores Windows.
 
 services:

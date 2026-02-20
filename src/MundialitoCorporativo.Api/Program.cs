@@ -25,8 +25,25 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-// Primera ejecución: aplica migraciones EF y carga seed (4 equipos, 5 jugadores/equipo, 6 partidos).
-await app.EnsureSeedAsync();
+// Espera inicial: solo en Docker (SQL tarda en aceptar conexiones desde otros contenedores). En local (localhost) 5s basta.
+var connStr = builder.Configuration["ConnectionStrings:DefaultConnection"] ?? "";
+var isDocker = connStr.Contains("Server=db;", StringComparison.OrdinalIgnoreCase);
+await Task.Delay(TimeSpan.FromSeconds(isDocker ? 35 : 5));
+const int maxRetries = 12;
+for (var i = 0; i < maxRetries; i++)
+{
+    try
+    {
+        await app.EnsureSeedAsync();
+        break;
+    }
+    catch (Exception ex) when (i < maxRetries - 1)
+    {
+        var delay = TimeSpan.FromSeconds(10);
+        app.Logger.LogWarning(ex, "Seed/DB no disponible, reintento en {Delay}s ({Attempt}/{Max})", delay.TotalSeconds, i + 1, maxRetries);
+        await Task.Delay(delay);
+    }
+}
 
 if (app.Environment.IsDevelopment())
 {

@@ -43,6 +43,12 @@ Guía completa: **docs/SUBIR_A_GITHUB.md**.
 - SQL Server (local or Docker)
 - Docker & Docker Compose (optional, for full stack)
 
+**Si el IDE muestra "Unable to retrieve project metadata. Ensure it's an SDK-style project":**
+- Abre la **carpeta raíz del repo** (donde está `MundialitoCorporativo.sln`), no una subcarpeta como `frontend`.
+- En Cursor/VS Code: **File → Open Folder** y elige la carpeta que contiene el `.sln`.
+- Los comandos `dotnet` y `dotnet ef` deben ejecutarse desde esa misma raíz, usando rutas al proyecto, por ejemplo:  
+  `dotnet ef database update --project src/MundialitoCorporativo.Infrastructure --startup-project src/MundialitoCorporativo.Api`
+
 ## Run locally
 
 ### Backend
@@ -57,6 +63,13 @@ Guía completa: **docs/SUBIR_A_GITHUB.md**.
    dotnet run
    ```
    En el primer arranque se aplican migraciones y seed (4 equipos, 5 jugadores por equipo, 6 partidos con 3 resultados).
+
+   **Si la API no arranca** (error "Invalid object name 'Teams'" en logs): aplicar migraciones a mano una vez:
+   ```bash
+   dotnet tool install --global dotnet-ef   # solo la primera vez
+   dotnet ef database update --project src/MundialitoCorporativo.Infrastructure --startup-project src/MundialitoCorporativo.Api
+   ```
+   Luego volver a ejecutar `dotnet run`.
 
 **Probar sin levantar API (solo tests y build):**  
 `.\scripts\run-and-test.ps1 -SkipApi`  
@@ -75,13 +88,21 @@ Open http://localhost:3000. Set `NEXT_PUBLIC_API_URL=http://localhost:5000` if t
 
 ### Docker (full stack)
 
-```bash
-docker compose up --build
+```powershell
+docker compose up --build -d
 ```
 
-- API: http://localhost:5000  
-- Frontend: http://localhost:3000  
-- DB: localhost:1433 (sa / MundialitoSecurePwd123!)
+La primera vez tarda varios minutos (descarga de imágenes: SQL Server ~500 MB, .NET, Node). Cuando los contenedores estén en ejecución:
+
+- **API:** http://localhost:5000 (Swagger: http://localhost:5000/swagger)
+- **Frontend:** http://localhost:3000
+- **DB:** localhost:1433 (usuario `sa`, contraseña en `docker-compose.yml`)
+
+Probar que la API responde después de levantar Docker:
+
+```powershell
+.\scripts\test-api-after-docker.ps1
+```
 
 ## Tests
 

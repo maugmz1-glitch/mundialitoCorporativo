@@ -1,3 +1,4 @@
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -7,12 +8,60 @@ namespace MundialitoCorporativo.Infrastructure.Persistence;
 
 public static class SeedData
 {
+    /// <summary>
+    /// Crea la base de datos en SQL Server si no existe (conectando a master), para evitar
+    /// que MigrateAsync se ejecute contra una conexión inesperada en Docker.
+    /// </summary>
+    private static async Task EnsureDatabaseExistsAsync(string connectionString, string databaseName, CancellationToken cancellationToken = default)
+    {
+        var builder = new SqlConnectionStringBuilder(connectionString) { InitialCatalog = "master" };
+        await using var conn = new SqlConnection(builder.ConnectionString);
+        await conn.OpenAsync(cancellationToken);
+        // Nombre escapado para T-SQL: ] -> ]]
+        var escaped = databaseName.Replace("]", "]]");
+        var sql = $"IF NOT EXISTS (SELECT * FROM sys.databases WHERE name = N'{databaseName.Replace("'", "''")}') EXEC('CREATE DATABASE [{escaped}]');";
+        await using var cmd = new SqlCommand(sql, conn);
+        await cmd.ExecuteNonQueryAsync(cancellationToken);
+    }
+
     public static async Task EnsureSeedAsync(this IHost host)
     {
+        var config = host.Services.GetRequiredService<Microsoft.Extensions.Configuration.IConfiguration>();
+        var connectionString = config["ConnectionStrings:DefaultConnection"];
+        var databaseName = "Mundialito";
+        if (!string.IsNullOrEmpty(connectionString))
+        {
+            var csBuilder = new SqlConnectionStringBuilder(connectionString);
+            if (!string.IsNullOrEmpty(csBuilder.InitialCatalog)) databaseName = csBuilder.InitialCatalog;
+            await EnsureDatabaseExistsAsync(connectionString, databaseName);
+        }
+
         using var scope = host.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         await db.Database.MigrateAsync();
-        if (await db.Teams.AnyAsync()) return;
+
+        // Si EF no encontró migraciones en el ensamblado (p. ej. al ejecutar desde Api) o la tabla no existe, crear esquema desde el modelo.
+        for (var i = 0; i < 2; i++)
+        {
+            try
+            {
+                if (await db.Teams.AnyAsync()) return;
+                break;
+            }
+            catch (Microsoft.Data.SqlClient.SqlException ex) when (ex.Number == 208)
+            {
+                if (i == 0)
+                {
+                    // Si EF no aplicó migraciones (ej. "No migrations were found"), la BD puede tener solo __EFMigrationsHistory.
+                    // EnsureCreated() no crea tablas si ya existe alguna; eliminamos solo esa tabla para permitir EnsureCreated.
+                    await db.Database.ExecuteSqlRawAsync(
+                        "IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'Teams') DROP TABLE IF EXISTS [__EFMigrationsHistory];");
+                    await db.Database.EnsureCreatedAsync();
+                    if (await db.Teams.AnyAsync()) return;
+                }
+                else throw;
+            }
+        }
 
         var t1 = new Team { Id = Guid.Parse("11111111-1111-1111-1111-111111111101"), Name = "Team Alpha", CreatedAtUtc = DateTime.UtcNow };
         var t2 = new Team { Id = Guid.Parse("11111111-1111-1111-1111-111111111102"), Name = "Team Beta", CreatedAtUtc = DateTime.UtcNow };

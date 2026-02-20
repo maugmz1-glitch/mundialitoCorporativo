@@ -1,6 +1,6 @@
 # Script para subir el proyecto a GitHub (ejecutar desde la raíz del repo).
-# Uso: .\scripts\push-to-github.ps1 -GitHubUrl "https://github.com/TU_USUARIO/TU_REPO.git"
-# O:   .\scripts\push-to-github.ps1 -GitHubUrl "git@github.com:TU_USUARIO/TU_REPO.git"
+# Uso: .\scripts\push-to-github.ps1 -GitHubUrl "https://github.com/maugmz1-glitch/mundialitoCorporativo.git"
+# O:   .\scripts\push-to-github.ps1 -GitHubUrl "git@github.com:maugmz1-glitch/mundialitoCorporativo.git"
 
 param(
     [Parameter(Mandatory = $true)]

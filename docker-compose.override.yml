@@ -1,6 +1,4 @@
-# Local overrides: ensure SQL tools for healthcheck or use simpler check
-version: '3.8'
-
+# Local overrides: healthcheck simplificado para la DB
 services:
   db:
     healthcheck:
