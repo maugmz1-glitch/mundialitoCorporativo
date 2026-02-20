@@ -6,6 +6,7 @@ Sistema de gestión de torneos: API .NET 8 (Clean Architecture, CQRS), frontend 
 
 ## Contenido
 
+- [Ramas de GitHub](#ramas-de-github)
 - [Stack](#stack)
 - [Estructura del repositorio](#estructura-del-repositorio)
 - [Requisitos](#requisitos)
@@ -28,6 +29,16 @@ Sistema de gestión de torneos: API .NET 8 (Clean Architecture, CQRS), frontend 
 | Infra | Docker, Docker Compose |
 
 **Conceptos:** Result pattern, idempotencia (`Idempotency-Key` en POST), paginación y filtros en listados.
+
+---
+
+## Ramas de GitHub
+
+| Rama | Descripción |
+|------|-------------|
+| **main** | Versión actual estable: equipos, jugadores, partidos, posiciones, proxy API en Docker. |
+| **development** | Incluye todo lo de main más **gestión de árbitros** (CRUD y página Árbitros en el menú). |
+| **release** | Incluye todo lo de main más **login básico** (usuario/contraseña, JWT, página Iniciar sesión y Cerrar sesión en la barra). Credenciales por defecto: `admin` / `Mundialito2024!`. |
 
 ---
 
