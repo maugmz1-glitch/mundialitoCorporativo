@@ -1,12 +1,15 @@
+using Asp.Versioning;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
-using MundialitoCorporativo.Application.Common;
+using MundialitoCorporativo.Api;
 using MundialitoCorporativo.Application.Standings.Queries;
 
 namespace MundialitoCorporativo.Api.Controllers;
 
 [ApiController]
+[Route("api/v{version:apiVersion}/[controller]")]
 [Route("api/[controller]")]
+[ApiVersion("1.0")]
 public class StandingsController : ControllerBase
 {
     private readonly IMediator _mediator;
@@ -15,19 +18,21 @@ public class StandingsController : ControllerBase
 
     [HttpGet]
     [ProducesResponseType(200)]
+    [ProducesResponseType(400)]
     public async Task<IActionResult> Get(CancellationToken cancellationToken)
     {
         var result = await _mediator.Send(new GetStandingsQuery(), cancellationToken);
-        if (!result.IsSuccess) return BadRequest(new { message = result.Message, code = result.ErrorCode });
+        if (!result.IsSuccess) return result.ToActionResult();
         return Ok(result.Data);
     }
 
     [HttpGet("top-scorers")]
     [ProducesResponseType(200)]
+    [ProducesResponseType(400)]
     public async Task<IActionResult> GetTopScorers([FromQuery] int? limit, CancellationToken cancellationToken)
     {
         var result = await _mediator.Send(new GetTopScorersQuery(limit ?? 10), cancellationToken);
-        if (!result.IsSuccess) return BadRequest(new { message = result.Message, code = result.ErrorCode });
+        if (!result.IsSuccess) return result.ToActionResult();
         return Ok(result.Data);
     }
 }

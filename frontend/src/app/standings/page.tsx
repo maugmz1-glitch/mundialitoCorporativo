@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { fetchApi } from '@/lib/api';
+import Loading from '../Loading';
 
 type Standing = { rank: number; teamId: string; teamName: string; played: number; won: number; drawn: number; lost: number; goalsFor: number; goalsAgainst: number; goalDifferential: number; points: number };
 type TopScorer = { playerId: string; playerName: string; teamName: string; goals: number };
@@ -27,7 +28,7 @@ export default function StandingsPage() {
           setScorers(sc);
         }
       } catch (e) {
-        if (!cancelled) setError(e instanceof Error ? e.message : 'Failed to load');
+        if (!cancelled) setError(e instanceof Error ? e.message : 'Error al cargar');
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -35,30 +36,31 @@ export default function StandingsPage() {
     return () => { cancelled = true; };
   }, []);
 
-  if (loading) return <p>Loading…</p>;
+  if (loading) return <Loading />;
   if (error) return <p className="error">{error}</p>;
 
   return (
     <div>
-      <h1>Standings</h1>
+      <h1>Posiciones</h1>
+      <div className="table-wrap">
       <table>
         <thead>
           <tr>
             <th>#</th>
-            <th>Team</th>
+            <th>Equipo</th>
+            <th>PJ</th>
+            <th>G</th>
+            <th>E</th>
             <th>P</th>
-            <th>W</th>
-            <th>D</th>
-            <th>L</th>
             <th>GF</th>
-            <th>GA</th>
-            <th>GD</th>
+            <th>GC</th>
+            <th>DG</th>
             <th>Pts</th>
           </tr>
         </thead>
         <tbody>
           {standings.map(row => (
-            <tr key={row.teamId}>
+            <tr key={row.teamId} className={row.rank === 1 ? 'row-leader' : undefined}>
               <td>{row.rank}</td>
               <td>{row.teamName}</td>
               <td>{row.played}</td>
@@ -73,13 +75,15 @@ export default function StandingsPage() {
           ))}
         </tbody>
       </table>
-      <h2>Top scorers</h2>
+      </div>
+      <h2 style={{ marginTop: '1.5rem' }}>Goleadores</h2>
+      <div className="table-wrap">
       <table>
         <thead>
           <tr>
-            <th>Player</th>
-            <th>Team</th>
-            <th>Goals</th>
+            <th>Jugador</th>
+            <th>Equipo</th>
+            <th>Goles</th>
           </tr>
         </thead>
         <tbody>
@@ -92,6 +96,7 @@ export default function StandingsPage() {
           ))}
         </tbody>
       </table>
+      </div>
     </div>
   );
 }

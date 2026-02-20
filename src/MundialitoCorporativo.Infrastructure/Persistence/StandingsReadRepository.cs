@@ -50,7 +50,7 @@ Agg AS (
     LEFT JOIN CompletedMatches cm ON t.Id = cm.TeamId
     GROUP BY t.Id, t.Name
 )
-SELECT ROW_NUMBER() OVER (ORDER BY Points DESC, (GoalsFor - GoalsAgainst) DESC, GoalsFor DESC) AS Rank,
+SELECT CAST(ROW_NUMBER() OVER (ORDER BY Points DESC, (GoalsFor - GoalsAgainst) DESC, GoalsFor DESC) AS INT) AS Rank,
        TeamId, TeamName,
        Won + Drawn + Lost AS Played, Won, Drawn, Lost,
        GoalsFor, GoalsAgainst, (GoalsFor - GoalsAgainst) AS GoalDifferential, Points

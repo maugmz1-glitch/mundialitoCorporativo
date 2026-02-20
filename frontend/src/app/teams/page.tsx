@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { fetchPaged, postApi, putApi, deleteApi } from '@/lib/api';
 import type { Paged } from '@/lib/api';
+import Loading from '../Loading';
 
 type Team = { id: string; name: string; logoUrl: string | null; createdAtUtc: string };
 
@@ -31,7 +32,7 @@ export default function TeamsPage() {
       });
       setPaged(r);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to load');
+      setError(e instanceof Error ? e.message : 'Error al cargar');
     } finally {
       setLoading(false);
     }
@@ -48,7 +49,7 @@ export default function TeamsPage() {
       setFormName(''); setFormLogo('');
       load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Create failed');
+      setError(e instanceof Error ? e.message : 'Error al crear');
     }
   };
 
@@ -61,18 +62,18 @@ export default function TeamsPage() {
       setEditing(null);
       load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Update failed');
+      setError(e instanceof Error ? e.message : 'Error al actualizar');
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Delete this team?')) return;
+    if (!confirm('¿Eliminar este equipo?')) return;
     setError(null);
     try {
       await deleteApi(`/api/teams/${id}`);
       load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Delete failed');
+      setError(e instanceof Error ? e.message : 'Error al eliminar');
     }
   };
 
@@ -84,40 +85,43 @@ export default function TeamsPage() {
 
   return (
     <div>
-      <h1>Teams</h1>
+      <h1>Equipos</h1>
       {error && <p className="error">{error}</p>}
       <div className="card">
-        <h2>Filters</h2>
-        <input placeholder="Filter by name" value={name} onChange={e => setName(e.target.value)} />
-        <select value={sortBy} onChange={e => setSortBy(e.target.value)}>
-          <option value="name">Name</option>
-          <option value="createdAtUtc">Created</option>
-        </select>
-        <select value={sortDir} onChange={e => setSortDir(e.target.value)}>
+        <h2>Filtros</h2>
+        <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+        <div><label>Nombre</label><input placeholder="Filtrar por nombre" value={name} onChange={e => setName(e.target.value)} /></div>
+        <div><label>Ordenar por</label><select value={sortBy} onChange={e => setSortBy(e.target.value)}>
+          <option value="name">Nombre</option>
+          <option value="createdAtUtc">Fecha de creación</option>
+        </select></div>
+        <div><label>Orden</label><select value={sortDir} onChange={e => setSortDir(e.target.value)}>
           <option value="asc">Asc</option>
           <option value="desc">Desc</option>
-        </select>
+        </select></div>
+        </div>
       </div>
       <div className="card">
-        <h2>{editing ? 'Edit team' : 'Create team'}</h2>
+        <h2>{editing ? 'Editar equipo' : 'Crear equipo'}</h2>
         <form onSubmit={editing ? handleUpdate : handleCreate}>
-          <label>Name</label>
+          <label>Nombre</label>
           <input value={formName} onChange={e => setFormName(e.target.value)} required />
-          <label>Logo URL</label>
+          <label>URL del logo</label>
           <input value={formLogo} onChange={e => setFormLogo(e.target.value)} />
-          <button type="submit" className="btn btn-primary">{editing ? 'Update' : 'Create'}</button>
-          {editing && <button type="button" className="btn" onClick={() => setEditing(null)}>Cancel</button>}
+          <button type="submit" className="btn btn-primary">{editing ? 'Actualizar' : 'Crear'}</button>
+          {editing && <button type="button" className="btn" onClick={() => setEditing(null)}>Cancelar</button>}
         </form>
       </div>
-      {loading && <p>Loading…</p>}
+      {loading && <Loading />}
       {paged && !loading && (
         <>
+          <div className="table-wrap">
           <table>
             <thead>
               <tr>
-                <th>Name</th>
+                <th>Nombre</th>
                 <th>Logo</th>
-                <th>Actions</th>
+                <th>Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -126,17 +130,18 @@ export default function TeamsPage() {
                   <td>{t.name}</td>
                   <td>{t.logoUrl || '—'}</td>
                   <td>
-                    <button className="btn" onClick={() => startEdit(t)}>Edit</button>
-                    <button className="btn btn-danger" onClick={() => handleDelete(t.id)}>Delete</button>
+                    <button className="btn" onClick={() => startEdit(t)}>Editar</button>
+                    <button className="btn btn-danger" onClick={() => handleDelete(t.id)}>Eliminar</button>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+          </div>
           <div className="pagination">
-            <button disabled={page <= 1} onClick={() => setPage(p => p - 1)}>Previous</button>
-            <span>Page {paged.pageNumber} of {paged.totalPages} ({paged.totalRecords} total)</span>
-            <button disabled={page >= paged.totalPages} onClick={() => setPage(p => p + 1)}>Next</button>
+            <button disabled={page <= 1} onClick={() => setPage(p => p - 1)}>Anterior</button>
+            <span>Página {paged.pageNumber} de {paged.totalPages} ({paged.totalRecords} en total)</span>
+            <button disabled={page >= paged.totalPages} onClick={() => setPage(p => p + 1)}>Siguiente</button>
           </div>
         </>
       )}

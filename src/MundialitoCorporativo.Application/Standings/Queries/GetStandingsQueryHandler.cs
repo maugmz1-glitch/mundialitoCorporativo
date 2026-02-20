@@ -1,4 +1,5 @@
 using MediatR;
+using MundialitoCorporativo.Application.Common;
 using MundialitoCorporativo.Application.Interfaces;
 using MundialitoCorporativo.Domain.Common;
 
@@ -12,7 +13,14 @@ public class GetStandingsQueryHandler : IRequestHandler<GetStandingsQuery, Resul
 
     public async Task<Result<IReadOnlyList<StandingRowDto>>> Handle(GetStandingsQuery request, CancellationToken cancellationToken)
     {
-        var standings = await _readRepository.GetStandingsAsync(cancellationToken);
-        return Result.Success(standings);
+        try
+        {
+            var standings = await _readRepository.GetStandingsAsync(cancellationToken);
+            return Result.Success(standings);
+        }
+        catch (Exception ex)
+        {
+            return Result.Failure<IReadOnlyList<StandingRowDto>>(ex.Message, ErrorCodes.Validation);
+        }
     }
 }

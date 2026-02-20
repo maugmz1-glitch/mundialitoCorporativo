@@ -1,5 +1,7 @@
+using Asp.Versioning;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
+using MundialitoCorporativo.Api;
 using MundialitoCorporativo.Application.Common;
 using MundialitoCorporativo.Application.Teams.Commands;
 using MundialitoCorporativo.Application.Teams.Queries;
@@ -7,7 +9,9 @@ using MundialitoCorporativo.Application.Teams.Queries;
 namespace MundialitoCorporativo.Api.Controllers;
 
 [ApiController]
+[Route("api/v{version:apiVersion}/[controller]")]
 [Route("api/[controller]")]
+[ApiVersion("1.0")]
 public class TeamsController : ControllerBase
 {
     private readonly IMediator _mediator;
@@ -20,7 +24,7 @@ public class TeamsController : ControllerBase
     public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
     {
         var result = await _mediator.Send(new GetTeamByIdQuery(id), cancellationToken);
-        if (!result.IsSuccess) return MapFailure(result);
+        if (!result.IsSuccess) return result.ToActionResult();
         if (result.Data == null) return NotFound();
         return Ok(result.Data);
     }
@@ -30,7 +34,7 @@ public class TeamsController : ControllerBase
     public async Task<IActionResult> GetList([FromQuery] GetTeamsQuery query, CancellationToken cancellationToken)
     {
         var result = await _mediator.Send(query, cancellationToken);
-        if (!result.IsSuccess) return MapFailure(result);
+        if (!result.IsSuccess) return result.ToActionResult();
         var pr = result.Data!;
         return Ok(new PagedResponse<TeamListItemDto>(pr.Data, pr.PageNumber, pr.PageSize, pr.TotalRecords, pr.TotalPages));
     }
@@ -42,7 +46,7 @@ public class TeamsController : ControllerBase
     public async Task<IActionResult> Create([FromBody] CreateTeamRequest request, CancellationToken cancellationToken)
     {
         var result = await _mediator.Send(new CreateTeamCommand(request.Name, request.LogoUrl), cancellationToken);
-        if (!result.IsSuccess) return MapFailure(result);
+        if (!result.IsSuccess) return result.ToActionResult();
         return CreatedAtAction(nameof(GetById), new { id = result.Data!.Id }, result.Data);
     }
 
@@ -53,7 +57,7 @@ public class TeamsController : ControllerBase
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateTeamRequest request, CancellationToken cancellationToken)
     {
         var result = await _mediator.Send(new UpdateTeamCommand(id, request.Name, request.LogoUrl), cancellationToken);
-        if (!result.IsSuccess) return MapFailure(result);
+        if (!result.IsSuccess) return result.ToActionResult();
         return Ok(result.Data);
     }
 
@@ -63,22 +67,8 @@ public class TeamsController : ControllerBase
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
         var result = await _mediator.Send(new DeleteTeamCommand(id), cancellationToken);
-        if (!result.IsSuccess) return MapFailure(result);
+        if (!result.IsSuccess) return result.ToActionResult();
         return NoContent();
-    }
-
-    /// <summary>
-    /// Mapeo Result → HTTP: sin excepciones; el ErrorCode del Result decide 404, 409 o 400.
-    /// Operación importante: toda la API usa este patrón para respuestas de error consistentes.
-    /// </summary>
-    private IActionResult MapFailure<T>(Domain.Common.Result<T> result)
-    {
-        return result.ErrorCode switch
-        {
-            ErrorCodes.NotFound => NotFound(new { message = result.Message, code = result.ErrorCode }),
-            ErrorCodes.Conflict or ErrorCodes.Duplicate => Conflict(new { message = result.Message, code = result.ErrorCode }),
-            _ => BadRequest(new { message = result.Message, code = result.ErrorCode })
-        };
     }
 }
 

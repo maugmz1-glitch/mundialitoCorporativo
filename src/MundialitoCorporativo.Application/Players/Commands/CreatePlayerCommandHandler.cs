@@ -15,8 +15,14 @@ public class CreatePlayerCommandHandler : IRequestHandler<CreatePlayerCommand, R
 
     public async Task<Result<PlayerDto>> Handle(CreatePlayerCommand request, CancellationToken cancellationToken)
     {
+        if (string.IsNullOrWhiteSpace(request.FirstName))
+            return Result.Failure<PlayerDto>("First name is required.", ErrorCodes.Validation);
+        if (string.IsNullOrWhiteSpace(request.LastName))
+            return Result.Failure<PlayerDto>("Last name is required.", ErrorCodes.Validation);
+
         if (await _db.Teams.FindAsync([request.TeamId], cancellationToken) == null)
             return Result.Failure<PlayerDto>("Team not found.", ErrorCodes.NotFound);
+
         var player = new Player
         {
             Id = Guid.NewGuid(),

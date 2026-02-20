@@ -64,6 +64,8 @@
 
 ## HTTP status mapping (Result pattern)
 
+No se usan excepciones para el control de flujo de negocio. Los handlers devuelven `Result<T>.Success(data)` o `Result<T>.Failure(message, errorCode)`; la API mapea el código a HTTP. Detalle: [RESULT_AND_HTTP.md](./RESULT_AND_HTTP.md).
+
 | Result              | HTTP   |
 |---------------------|--------|
 | Success + data      | 200 OK |
@@ -72,6 +74,11 @@
 | Failure + Conflict/Duplicate | 409 Conflict |
 | Failure + Validation/other   | 400 Bad Request |
 | Delete success      | 204 No Content |
+
+## API versioning
+
+- All routes are under **`api/v1/`** (e.g. `api/v1/teams`, `api/v1/standings/top-scorers`).
+- Implemented with **Asp.Versioning.Mvc**; default version 1.0, URL segment versioning. Future versions (e.g. v2) can coexist.
 
 ## Pagination
 

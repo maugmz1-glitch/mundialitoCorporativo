@@ -1,4 +1,5 @@
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 using MundialitoCorporativo.Application.Common;
 using MundialitoCorporativo.Application.Interfaces;
 using MundialitoCorporativo.Application.Teams.Queries;
@@ -19,13 +20,18 @@ public class CreateTeamCommandHandler : IRequestHandler<CreateTeamCommand, Resul
 
     public async Task<Result<TeamDto>> Handle(CreateTeamCommand request, CancellationToken cancellationToken)
     {
-        // Validación: no usamos excepciones; devolvemos Result.Failure para que la API mapee a 400.
         if (string.IsNullOrWhiteSpace(request.Name))
             return Result.Failure<TeamDto>("Team name is required.", ErrorCodes.Validation);
+
+        var name = request.Name.Trim();
+        var exists = await _db.Teams.AnyAsync(t => t.Name == name, cancellationToken);
+        if (exists)
+            return Result.Failure<TeamDto>("A team with this name already exists.", ErrorCodes.Conflict);
+
         var team = new Team
         {
             Id = Guid.NewGuid(),
-            Name = request.Name.Trim(),
+            Name = name,
             LogoUrl = request.LogoUrl?.Trim(),
             CreatedAtUtc = DateTime.UtcNow
         };

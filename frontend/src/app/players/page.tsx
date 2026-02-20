@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { fetchApi, fetchPaged, postApi, putApi, deleteApi } from '@/lib/api';
 import type { Paged } from '@/lib/api';
+import Loading from '../Loading';
 
 type Team = { id: string; name: string };
 type Player = { id: string; teamId: string; firstName: string; lastName: string; jerseyNumber: string | null; position: string | null; teamName: string; createdAtUtc: string };
@@ -36,7 +37,7 @@ export default function PlayersPage() {
       });
       setPaged(r);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to load');
+      setError(e instanceof Error ? e.message : 'Error al cargar');
     } finally {
       setLoading(false);
     }
@@ -60,7 +61,7 @@ export default function PlayersPage() {
       setForm({ ...form, firstName: '', lastName: '', jerseyNumber: '', position: '' });
       load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Create failed');
+      setError(e instanceof Error ? e.message : 'Error al crear');
     }
   };
 
@@ -79,58 +80,59 @@ export default function PlayersPage() {
       setEditing(null);
       load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Update failed');
+      setError(e instanceof Error ? e.message : 'Error al actualizar');
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Delete this player?')) return;
+    if (!confirm('¿Eliminar este jugador?')) return;
     setError(null);
     try {
       await deleteApi(`/api/players/${id}`);
       load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Delete failed');
+      setError(e instanceof Error ? e.message : 'Error al eliminar');
     }
   };
 
   return (
     <div>
-      <h1>Players</h1>
+      <h1>Jugadores</h1>
       {error && <p className="error">{error}</p>}
       <div className="card">
-        <input placeholder="Filter by name" value={name} onChange={e => setName(e.target.value)} />
+        <input placeholder="Filtrar por nombre" value={name} onChange={e => setName(e.target.value)} />
         <select value={teamId} onChange={e => setTeamId(e.target.value)}>
-          <option value="">All teams</option>
+          <option value="">Todos los equipos</option>
           {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
         </select>
       </div>
       <div className="card">
-        <h2>{editing ? 'Edit player' : 'Add player'}</h2>
+        <h2>{editing ? 'Editar jugador' : 'Agregar jugador'}</h2>
         <form onSubmit={editing ? handleUpdate : handleCreate}>
-          <label>Team</label>
+          <label>Equipo</label>
           <select value={form.teamId} onChange={e => setForm(f => ({ ...f, teamId: e.target.value }))} required>
             {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
           </select>
-          <label>First name</label>
+          <label>Nombre</label>
           <input value={form.firstName} onChange={e => setForm(f => ({ ...f, firstName: e.target.value }))} required />
-          <label>Last name</label>
+          <label>Apellido</label>
           <input value={form.lastName} onChange={e => setForm(f => ({ ...f, lastName: e.target.value }))} required />
-          <label>Jersey #</label>
+          <label>Dorsal</label>
           <input value={form.jerseyNumber} onChange={e => setForm(f => ({ ...f, jerseyNumber: e.target.value }))} />
-          <label>Position</label>
+          <label>Posición</label>
           <input value={form.position} onChange={e => setForm(f => ({ ...f, position: e.target.value }))} />
-          <button type="submit" className="btn btn-primary">{editing ? 'Update' : 'Create'}</button>
-          {editing && <button type="button" className="btn" onClick={() => setEditing(null)}>Cancel</button>}
+          <button type="submit" className="btn btn-primary">{editing ? 'Actualizar' : 'Crear'}</button>
+          {editing && <button type="button" className="btn" onClick={() => setEditing(null)}>Cancelar</button>}
         </form>
       </div>
-      {loading && <p>Loading…</p>}
+      {loading && <Loading />}
       {paged && !loading && (
         <>
+          <div className="table-wrap">
           <table>
             <thead>
               <tr>
-                <th>Name</th>
+                <th>Nombre</th>
                 <th>Team</th>
                 <th>#</th>
                 <th>Position</th>
@@ -145,17 +147,18 @@ export default function PlayersPage() {
                   <td>{p.jerseyNumber || '—'}</td>
                   <td>{p.position || '—'}</td>
                   <td>
-                    <button className="btn" onClick={() => { setEditing(p); setForm({ teamId: p.teamId, firstName: p.firstName, lastName: p.lastName, jerseyNumber: p.jerseyNumber || '', position: p.position || '' }); }}>Edit</button>
-                    <button className="btn btn-danger" onClick={() => handleDelete(p.id)}>Delete</button>
+                    <button className="btn" onClick={() => { setEditing(p); setForm({ teamId: p.teamId, firstName: p.firstName, lastName: p.lastName, jerseyNumber: p.jerseyNumber || '', position: p.position || '' }); }}>Editar</button>
+                    <button className="btn btn-danger" onClick={() => handleDelete(p.id)}>Eliminar</button>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+          </div>
           <div className="pagination">
-            <button disabled={page <= 1} onClick={() => setPage(p => p - 1)}>Previous</button>
-            <span>Page {paged.pageNumber} of {paged.totalPages}</span>
-            <button disabled={page >= paged.totalPages} onClick={() => setPage(p => p + 1)}>Next</button>
+            <button disabled={page <= 1} onClick={() => setPage(p => p - 1)}>Anterior</button>
+            <span>Página {paged.pageNumber} de {paged.totalPages}</span>
+            <button disabled={page >= paged.totalPages} onClick={() => setPage(p => p + 1)}>Siguiente</button>
           </div>
         </>
       )}

@@ -1,5 +1,7 @@
+using Asp.Versioning;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
+using MundialitoCorporativo.Api;
 using MundialitoCorporativo.Application.Common;
 using MundialitoCorporativo.Application.Players.Commands;
 using MundialitoCorporativo.Application.Players.Queries;
@@ -7,7 +9,9 @@ using MundialitoCorporativo.Application.Players.Queries;
 namespace MundialitoCorporativo.Api.Controllers;
 
 [ApiController]
+[Route("api/v{version:apiVersion}/[controller]")]
 [Route("api/[controller]")]
+[ApiVersion("1.0")]
 public class PlayersController : ControllerBase
 {
     private readonly IMediator _mediator;
@@ -20,7 +24,7 @@ public class PlayersController : ControllerBase
     public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
     {
         var result = await _mediator.Send(new GetPlayerByIdQuery(id), cancellationToken);
-        if (!result.IsSuccess) return MapFailure(result);
+        if (!result.IsSuccess) return result.ToActionResult();
         if (result.Data == null) return NotFound();
         return Ok(result.Data);
     }
@@ -30,7 +34,7 @@ public class PlayersController : ControllerBase
     public async Task<IActionResult> GetList([FromQuery] GetPlayersQuery query, CancellationToken cancellationToken)
     {
         var result = await _mediator.Send(query, cancellationToken);
-        if (!result.IsSuccess) return MapFailure(result);
+        if (!result.IsSuccess) return result.ToActionResult();
         var pr = result.Data!;
         return Ok(new PagedResponse<PlayerListItemDto>(pr.Data, pr.PageNumber, pr.PageSize, pr.TotalRecords, pr.TotalPages));
     }
@@ -42,7 +46,7 @@ public class PlayersController : ControllerBase
     public async Task<IActionResult> Create([FromBody] CreatePlayerRequest request, CancellationToken cancellationToken)
     {
         var result = await _mediator.Send(new CreatePlayerCommand(request.TeamId, request.FirstName, request.LastName, request.JerseyNumber, request.Position), cancellationToken);
-        if (!result.IsSuccess) return MapFailure(result);
+        if (!result.IsSuccess) return result.ToActionResult();
         return CreatedAtAction(nameof(GetById), new { id = result.Data!.Id }, result.Data);
     }
 
@@ -53,7 +57,7 @@ public class PlayersController : ControllerBase
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdatePlayerRequest request, CancellationToken cancellationToken)
     {
         var result = await _mediator.Send(new UpdatePlayerCommand(id, request.TeamId, request.FirstName, request.LastName, request.JerseyNumber, request.Position), cancellationToken);
-        if (!result.IsSuccess) return MapFailure(result);
+        if (!result.IsSuccess) return result.ToActionResult();
         return Ok(result.Data);
     }
 
@@ -63,19 +67,10 @@ public class PlayersController : ControllerBase
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
         var result = await _mediator.Send(new DeletePlayerCommand(id), cancellationToken);
-        if (!result.IsSuccess) return MapFailure(result);
+        if (!result.IsSuccess) return result.ToActionResult();
         return NoContent();
     }
 
-    private IActionResult MapFailure<T>(Domain.Common.Result<T> result)
-    {
-        return result.ErrorCode switch
-        {
-            ErrorCodes.NotFound => NotFound(new { message = result.Message, code = result.ErrorCode }),
-            ErrorCodes.Conflict or ErrorCodes.Duplicate => Conflict(new { message = result.Message, code = result.ErrorCode }),
-            _ => BadRequest(new { message = result.Message, code = result.ErrorCode })
-        };
-    }
 }
 
 public record CreatePlayerRequest(Guid TeamId, string FirstName, string LastName, string? JerseyNumber, string? Position);

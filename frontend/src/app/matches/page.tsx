@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { fetchPaged, postApi, putApi, patchApi, deleteApi } from '@/lib/api';
 import type { Paged } from '@/lib/api';
+import Loading from '../Loading';
 
 type Team = { id: string; name: string };
 type Match = {
@@ -11,7 +12,7 @@ type Match = {
   homeTeamName: string; awayTeamName: string;
 };
 
-const statusLabels: Record<number, string> = { 0: 'Scheduled', 1: 'In progress', 2: 'Completed', 3: 'Postponed', 4: 'Cancelled' };
+const statusLabels: Record<number, string> = { 0: 'Programado', 1: 'En curso', 2: 'Finalizado', 3: 'Aplazado', 4: 'Cancelado' };
 
 export default function MatchesPage() {
   const [paged, setPaged] = useState<Paged<Match> | null>(null);
@@ -42,7 +43,7 @@ export default function MatchesPage() {
       });
       setPaged(r);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to load');
+      setError(e instanceof Error ? e.message : 'Error al cargar');
     } finally {
       setLoading(false);
     }
@@ -64,7 +65,7 @@ export default function MatchesPage() {
       setForm({ ...form, scheduledAtUtc: '', venue: '' });
       load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Create failed');
+      setError(e instanceof Error ? e.message : 'Error al crear');
     }
   };
 
@@ -77,73 +78,74 @@ export default function MatchesPage() {
       setResultMatch(null);
       load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Set result failed');
+      setError(e instanceof Error ? e.message : 'Error al guardar resultado');
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Delete this match?')) return;
+    if (!confirm('¿Eliminar este partido?')) return;
     setError(null);
     try {
       await deleteApi(`/api/matches/${id}`);
       load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Delete failed');
+      setError(e instanceof Error ? e.message : 'Error al eliminar');
     }
   };
 
   return (
     <div>
-      <h1>Matches</h1>
+      <h1>Partidos</h1>
       {error && <p className="error">{error}</p>}
       <div className="card">
         <select value={status} onChange={e => setStatus(e.target.value === '' ? '' : Number(e.target.value))}>
-          <option value="">All statuses</option>
+          <option value="">Todos los estados</option>
           {Object.entries(statusLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
         </select>
       </div>
       <div className="card">
-        <h2>Create match</h2>
+        <h2>Crear partido</h2>
         <form onSubmit={handleCreate}>
-          <label>Home team</label>
+          <label>Equipo local</label>
           <select value={form.homeTeamId} onChange={e => setForm(f => ({ ...f, homeTeamId: e.target.value }))} required>
             {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
           </select>
-          <label>Away team</label>
+          <label>Equipo visitante</label>
           <select value={form.awayTeamId} onChange={e => setForm(f => ({ ...f, awayTeamId: e.target.value }))} required>
             {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
           </select>
-          <label>Date (UTC)</label>
+          <label>Fecha y hora (UTC)</label>
           <input type="datetime-local" value={form.scheduledAtUtc} onChange={e => setForm(f => ({ ...f, scheduledAtUtc: e.target.value }))} />
-          <label>Venue</label>
+          <label>Sede</label>
           <input value={form.venue} onChange={e => setForm(f => ({ ...f, venue: e.target.value }))} />
-          <button type="submit" className="btn btn-primary">Create</button>
+          <button type="submit" className="btn btn-primary">Crear</button>
         </form>
       </div>
       {resultMatch && (
         <div className="card">
-          <h2>Set result: {resultMatch.homeTeamName} vs {resultMatch.awayTeamName}</h2>
+          <h2>Cargar resultado: {resultMatch.homeTeamName} vs {resultMatch.awayTeamName}</h2>
           <form onSubmit={handleSetResult}>
             <input type="number" min={0} value={resultHome} onChange={e => setResultHome(parseInt(e.target.value, 10) || 0)} />
             <span> – </span>
             <input type="number" min={0} value={resultAway} onChange={e => setResultAway(parseInt(e.target.value, 10) || 0)} />
-            <button type="submit" className="btn btn-primary">Save</button>
-            <button type="button" className="btn" onClick={() => setResultMatch(null)}>Cancel</button>
+            <button type="submit" className="btn btn-primary">Guardar</button>
+            <button type="button" className="btn" onClick={() => setResultMatch(null)}>Cancelar</button>
           </form>
         </div>
       )}
-      {loading && <p>Loading…</p>}
+      {loading && <Loading />}
       {paged && !loading && (
         <>
+          <div className="table-wrap">
           <table>
             <thead>
               <tr>
-                <th>Home</th>
-                <th>Score</th>
-                <th>Away</th>
-                <th>Date</th>
-                <th>Status</th>
-                <th>Actions</th>
+                <th>Local</th>
+                <th>Resultado</th>
+                <th>Visitante</th>
+                <th>Fecha</th>
+                <th>Estado</th>
+                <th>Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -155,17 +157,18 @@ export default function MatchesPage() {
                   <td>{new Date(m.scheduledAtUtc).toLocaleString()}</td>
                   <td>{statusLabels[m.status] ?? m.status}</td>
                   <td>
-                    {m.status !== 2 && <button className="btn" onClick={() => { setResultMatch(m); setResultHome(0); setResultAway(0); }}>Set result</button>}
-                    <button className="btn btn-danger" onClick={() => handleDelete(m.id)}>Delete</button>
+                    {m.status !== 2 && <button className="btn" onClick={() => { setResultMatch(m); setResultHome(0); setResultAway(0); }}>Cargar resultado</button>}
+                    <button className="btn btn-danger" onClick={() => handleDelete(m.id)}>Eliminar</button>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+          </div>
           <div className="pagination">
-            <button disabled={page <= 1} onClick={() => setPage(p => p - 1)}>Previous</button>
-            <span>Page {paged.pageNumber} of {paged.totalPages}</span>
-            <button disabled={page >= paged.totalPages} onClick={() => setPage(p => p + 1)}>Next</button>
+            <button disabled={page <= 1} onClick={() => setPage(p => p - 1)}>Anterior</button>
+            <span>Página {paged.pageNumber} de {paged.totalPages}</span>
+            <button disabled={page >= paged.totalPages} onClick={() => setPage(p => p + 1)}>Siguiente</button>
           </div>
         </>
       )}

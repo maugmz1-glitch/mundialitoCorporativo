@@ -12,6 +12,13 @@ builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 // Respuestas JSON en camelCase para el frontend.
 builder.Services.AddControllers().AddJsonOptions(o => o.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase);
+// Versionado de API: rutas api/v1/... (permite evolucionar sin romper clientes).
+builder.Services.AddApiVersioning(options =>
+{
+    options.DefaultApiVersion = new Asp.Versioning.ApiVersion(1, 0);
+    options.AssumeDefaultVersionWhenUnspecified = true;
+    options.ReportApiVersions = true;
+});
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddCors(options =>
@@ -51,6 +58,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+// Errores no controlados: devolver 500 en JSON para que el frontend muestre el mensaje.
+app.UseMiddleware<MundialitoCorporativo.Api.Middleware.ExceptionHandlingMiddleware>();
 // Idempotencia: POST con cabecera Idempotency-Key devuelve la misma respuesta en reintentos sin duplicar.
 app.UseMiddleware<MundialitoCorporativo.Api.Middleware.IdempotencyMiddleware>();
 app.UseCors();

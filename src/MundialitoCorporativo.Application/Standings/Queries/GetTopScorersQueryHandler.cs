@@ -1,4 +1,5 @@
 using MediatR;
+using MundialitoCorporativo.Application.Common;
 using MundialitoCorporativo.Application.Interfaces;
 using MundialitoCorporativo.Domain.Common;
 
@@ -12,7 +13,14 @@ public class GetTopScorersQueryHandler : IRequestHandler<GetTopScorersQuery, Res
 
     public async Task<Result<IReadOnlyList<TopScorerDto>>> Handle(GetTopScorersQuery request, CancellationToken cancellationToken)
     {
-        var scorers = await _readRepository.GetTopScorersAsync(request.Limit, cancellationToken);
-        return Result.Success(scorers);
+        try
+        {
+            var scorers = await _readRepository.GetTopScorersAsync(request.Limit, cancellationToken);
+            return Result.Success(scorers);
+        }
+        catch (Exception ex)
+        {
+            return Result.Failure<IReadOnlyList<TopScorerDto>>(ex.Message, ErrorCodes.Validation);
+        }
     }
 }

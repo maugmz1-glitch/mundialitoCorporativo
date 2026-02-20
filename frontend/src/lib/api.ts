@@ -1,9 +1,15 @@
 const API = process.env.NEXT_PUBLIC_API_URL || '';
+/** Rutas a la API. La backend acepta tanto /api/... como /api/v1/... */
+function apiPath(path: string): string {
+  // Usar /api/... (sin v1) para máxima compatibilidad con proxy y backend
+  return path.startsWith('/api') ? path : `/api/${path.replace(/^\//, '')}`;
+}
 
 export type Paged<T> = { data: T[]; pageNumber: number; pageSize: number; totalRecords: number; totalPages: number };
 
 export async function fetchApi<T>(path: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(`${API}${path}`, {
+  const url = `${API}${apiPath(path)}`;
+  const res = await fetch(url, {
     ...options,
     headers: { 'Content-Type': 'application/json', ...options?.headers },
   });
@@ -38,7 +44,7 @@ export async function patchApi<T>(path: string, body: unknown): Promise<T> {
 }
 
 export async function deleteApi(path: string): Promise<void> {
-  const res = await fetch(`${API}${path}`, { method: 'DELETE' });
+  const res = await fetch(`${API}${apiPath(path)}`, { method: 'DELETE' });
   if (!res.ok && res.status !== 204) {
     const err = await res.json().catch(() => ({ message: res.statusText }));
     throw new Error((err as { message?: string }).message || res.statusText);

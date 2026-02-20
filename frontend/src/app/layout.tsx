@@ -1,9 +1,10 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import Nav from './Nav';
 
 export const metadata: Metadata = {
-  title: 'Mundialito Tournament',
-  description: 'Tournament management system',
+  title: 'Mundialito Corporativo',
+  description: 'Sistema de gestión de torneos – equipos, jugadores, partidos y posiciones',
 };
 
 export default function RootLayout({
@@ -12,15 +13,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="es">
       <body>
-        <nav className="nav">
-          <a href="/">Home</a>
-          <a href="/teams">Teams</a>
-          <a href="/players">Players</a>
-          <a href="/matches">Matches</a>
-          <a href="/standings">Standings</a>
-        </nav>
+        <header className="top-bar">
+          <span>Mundialito Corporativo</span>
+          <span className="top-bar-sep">|</span>
+          <span>Equipos · Jugadores · Partidos · Posiciones</span>
+        </header>
+        <Nav />
         <main className="main">{children}</main>
       </body>
     </html>
