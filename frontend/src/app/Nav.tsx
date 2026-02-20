@@ -8,6 +8,7 @@ const links = [
   { href: '/teams', label: 'Equipos' },
   { href: '/players', label: 'Jugadores' },
   { href: '/matches', label: 'Partidos' },
+  { href: '/referees', label: 'Árbitros' },
   { href: '/standings', label: 'Posiciones' },
 ];
 

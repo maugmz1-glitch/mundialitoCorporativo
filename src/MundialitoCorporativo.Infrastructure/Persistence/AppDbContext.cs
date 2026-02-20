@@ -12,6 +12,7 @@ public class AppDbContext : DbContext, IAppDbContext
     public DbSet<Player> Players => Set<Player>();
     public DbSet<Match> Matches => Set<Match>();
     public DbSet<MatchGoal> MatchGoals => Set<MatchGoal>();
+    public DbSet<Referee> Referees => Set<Referee>();
     public DbSet<IdempotencyRecord> IdempotencyRecords => Set<IdempotencyRecord>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -43,6 +44,13 @@ public class AppDbContext : DbContext, IAppDbContext
             e.HasKey(x => x.Id);
             e.HasOne(x => x.Match).WithMany(x => x.Goals).HasForeignKey(x => x.MatchId).OnDelete(DeleteBehavior.Cascade);
             e.HasOne(x => x.Scorer).WithMany(x => x.GoalsScored).HasForeignKey(x => x.ScorerId).OnDelete(DeleteBehavior.Restrict);
+        });
+        modelBuilder.Entity<Referee>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.FirstName).HasMaxLength(100).IsRequired();
+            e.Property(x => x.LastName).HasMaxLength(100).IsRequired();
+            e.Property(x => x.LicenseNumber).HasMaxLength(50);
         });
         modelBuilder.Entity<IdempotencyRecord>(e =>
         {
