@@ -1,15 +1,22 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { Suspense, useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { setAuth } from '@/lib/api';
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (searchParams.get('registered') === '1') setSuccess('Cuenta creada. Ya puedes iniciar sesión.');
+  }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,7 +37,12 @@ export default function LoginPage() {
       router.push('/');
       router.refresh();
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Error al iniciar sesión.');
+      const msg = e instanceof Error ? e.message : 'Error al iniciar sesión.';
+      if (msg === 'fetch failed' || msg === 'Failed to fetch' || msg.includes('NetworkError')) {
+        setError('No se pudo conectar con el servidor. Comprueba que la API y el frontend estén en ejecución (p. ej. docker compose up).');
+      } else {
+        setError(msg);
+      }
     } finally {
       setLoading(false);
     }
@@ -39,6 +51,10 @@ export default function LoginPage() {
   return (
     <div className="card" style={{ maxWidth: 400, margin: '2rem auto' }}>
       <h1>Iniciar sesión</h1>
+      <p style={{ color: 'var(--text-muted)', marginBottom: '1rem' }}>
+        Ingresa con tu usuario y contraseña. Si no tienes cuenta, créala primero.
+      </p>
+      {success && <p className="success" style={{ color: 'var(--success, green)', marginBottom: '0.5rem' }}>{success}</p>}
       {error && <p className="error">{error}</p>}
       <form onSubmit={handleSubmit}>
         <label>Usuario</label>
@@ -61,9 +77,20 @@ export default function LoginPage() {
           {loading ? 'Entrando…' : 'Entrar'}
         </button>
       </form>
-      <p style={{ marginTop: '1rem', fontSize: '0.9rem', color: 'var(--muted)' }}>
-        Por defecto: admin / Mundialito2024!
+      <p style={{ marginTop: '1rem', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+        ¿No tienes cuenta? <Link href="/register">Crear cuenta</Link>
+      </p>
+      <p style={{ marginTop: '0.5rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+        Usuario demo: <strong>demo</strong> / <strong>Demo123!</strong>
       </p>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="card" style={{ maxWidth: 400, margin: '2rem auto' }}>Cargando…</div>}>
+      <LoginForm />
+    </Suspense>
   );
 }

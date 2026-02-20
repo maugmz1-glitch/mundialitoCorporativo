@@ -9,6 +9,7 @@ public interface IAppDbContext
     DbSet<Player> Players { get; }
     DbSet<Match> Matches { get; }
     DbSet<MatchGoal> MatchGoals { get; }
+    DbSet<User> Users { get; }
     DbSet<IdempotencyRecord> IdempotencyRecords { get; }
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

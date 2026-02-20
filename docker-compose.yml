@@ -35,6 +35,12 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 90s
 
   frontend:
     build:
@@ -44,9 +50,7 @@ services:
     ports:
       - "3000:3000"
     environment:
-      # Rewrite /api/* desde el servidor Next.js hacia la API (nombre del servicio en Docker)
       API_URL: http://api:8080
-      # Cliente: vacío para que el navegador pida a mismo origen (3000) y el rewrite actúe
       NEXT_PUBLIC_API_URL: ""
     depends_on:
       - api

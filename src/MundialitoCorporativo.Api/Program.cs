@@ -1,6 +1,7 @@
 // ========== CONFIGURACIÓN PRINCIPAL DE LA API ==========
 // Clean Architecture: Api solo orquesta; la lógica está en Application e Infrastructure.
 
+using MundialitoCorporativo.Api;
 using MundialitoCorporativo.Application;
 using MundialitoCorporativo.Infrastructure;
 using MundialitoCorporativo.Infrastructure.Persistence;
@@ -70,6 +71,15 @@ for (var i = 0; i < maxRetries; i++)
     }
 }
 
+try
+{
+    await app.EnsureDemoUserAsync();
+}
+catch (Exception ex)
+{
+    app.Logger.LogWarning(ex, "No se pudo crear el usuario demo; la API seguirá en ejecución.");
+}
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -85,5 +95,6 @@ app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.MapGet("/health", () => Results.Ok(new { status = "healthy" }));
 
 app.Run();

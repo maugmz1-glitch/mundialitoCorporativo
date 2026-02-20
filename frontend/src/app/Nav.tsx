@@ -48,7 +48,10 @@ export default function Nav() {
             <button type="button" className="btn btn-small" onClick={handleLogout}>Cerrar sesión</button>
           </span>
         ) : (
-          <Link href="/login" className={pathname === '/login' ? 'active' : undefined}>Iniciar sesión</Link>
+          <>
+            <Link href="/register" className={pathname === '/register' ? 'active' : undefined}>Crear cuenta</Link>
+            <Link href="/login" className={pathname === '/login' ? 'active' : undefined}>Iniciar sesión</Link>
+          </>
         )}
       </div>
     </nav>
