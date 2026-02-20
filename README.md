@@ -1,10 +1,155 @@
-# Mundialito Tournament Management System
+# Mundialito
 
-Enterprise-style tournament management with Clean Architecture, CQRS, EF Core (writes), Dapper (reads), Result pattern, idempotency, and a Next.js frontend.
+Sistema de gestión de torneos: API .NET 8 (Clean Architecture, CQRS), frontend Next.js y SQL Server.
+
+---
+
+## Contenido
+
+- [Stack](#stack)
+- [Estructura del repositorio](#estructura-del-repositorio)
+- [Requisitos](#requisitos)
+- [Quick start](#quick-start)
+- [Desarrollo local](#desarrollo-local)
+- [Docker](#docker)
+- [API](#api)
+- [Documentación](#documentación)
+
+---
+
+## Stack
+
+| Capa | Tecnología |
+|------|------------|
+| API | .NET 8, ASP.NET Core, MediatR (CQRS) |
+| Escritura | Entity Framework Core 8, SQL Server |
+| Lectura | Dapper (consultas optimizadas) |
+| Frontend | Next.js 14, React, TypeScript |
+| Infra | Docker, Docker Compose |
+
+**Conceptos:** Result pattern, idempotencia (`Idempotency-Key` en POST), paginación y filtros en listados.
+
+---
+
+## Estructura del repositorio
+
+```
+├── src/
+│   ├── MundialitoCorporativo.Domain      # Entidades, Result, enums
+│   ├── MundialitoCorporativo.Application # CQRS (commands, queries, handlers), DTOs
+│   ├── MundialitoCorporativo.Infrastructure # EF Core, migraciones, Dapper, idempotencia
+│   └── MundialitoCorporativo.Api        # Controllers, middleware, HTTP
+├── tests/
+│   └── MundialitoCorporativo.Tests      # Tests unitarios
+├── frontend/                            # Next.js (equipos, jugadores, partidos, tabla)
+├── docs/                                # Arquitectura, Git, guías
+├── scripts/                             # PowerShell: push GitHub, tests, Docker
+├── postman/                             # Colección Postman (API, idempotencia)
+├── docker-compose.yml
+├── global.json
+└── MundialitoCorporativo.sln
+```
+
+---
+
+## Requisitos
+
+- **.NET 8 SDK**
+- **Node 20+** (frontend)
+- **SQL Server** (local o contenedor)
+- **Docker y Docker Compose** (opcional, para stack completo)
+
+Si el IDE muestra *"Unable to retrieve project metadata"*: abre la **carpeta raíz** (donde está el `.sln`), no una subcarpeta como `frontend`. Ejecuta `dotnet` desde esa raíz.
+
+---
+
+## Quick start
+
+1. **Base de datos** (una opción):
+   - Docker: `docker run -d --name mundialito-db -e "ACCEPT_EULA=Y" -e "MSSQL_SA_PASSWORD=MundialitoSecurePwd123!" -p 1433:1433 mcr.microsoft.com/mssql/server:2022-latest`
+   - O SQL Server local con base `Mundialito`.
+2. **API:** desde la raíz del repo:
+   ```bash
+   cd src/MundialitoCorporativo.Api
+   dotnet run
+   ```
+   En el primer arranque se aplican migraciones y seed (equipos, jugadores, partidos).
+3. **Frontend:** en otra terminal:
+   ```bash
+   cd frontend && npm install && npm run dev
+   ```
+4. Abrir **http://localhost:3000** y **http://localhost:5000/swagger**.
+
+Si la API falla con *"Invalid object name 'Teams'"*: instalar `dotnet-ef` (`dotnet tool install --global dotnet-ef`) y ejecutar una vez  
+`dotnet ef database update --project src/MundialitoCorporativo.Infrastructure --startup-project src/MundialitoCorporativo.Api`,  
+luego volver a `dotnet run`.
+
+---
+
+## Desarrollo local
+
+| Acción | Comando |
+|--------|--------|
+| Tests | `dotnet test tests/MundialitoCorporativo.Tests/MundialitoCorporativo.Tests.csproj` |
+| Build | `dotnet build src/MundialitoCorporativo.Api/MundialitoCorporativo.Api.csproj -c Release` |
+| Tests + build (+ opcional API) | `.\scripts\run-and-test.ps1` o `.\scripts\run-and-test.ps1 -SkipApi` |
+
+Connection string por defecto: `Server=localhost,1433;Database=Mundialito;User Id=sa;Password=MundialitoSecurePwd123!;TrustServerCertificate=True;`  
+(editable en `src/MundialitoCorporativo.Api/appsettings.json`).
+
+---
+
+## Docker
+
+```powershell
+docker compose up --build -d
+```
+
+- **API:** http://localhost:5000 — **Swagger:** http://localhost:5000/swagger  
+- **Frontend:** http://localhost:3000  
+- **SQL Server:** localhost:1433 (usuario `sa`, contraseña en `docker-compose.yml`)
+
+Comprobar API tras levantar: `.\scripts\test-api-after-docker.ps1`
+
+---
+
+## API
+
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| GET | `/api/teams` | Lista (paginación, orden, filtro por nombre) |
+| GET | `/api/teams/{id}` | Detalle equipo |
+| POST | `/api/teams` | Crear (opcional `Idempotency-Key`) |
+| PUT | `/api/teams/{id}` | Actualizar |
+| DELETE | `/api/teams/{id}` | Eliminar |
+| GET | `/api/players` | Lista (teamId, nombre, paginación) |
+| GET/POST/PUT/DELETE | `/api/players`, `/api/players/{id}` | CRUD jugadores |
+| GET | `/api/matches` | Lista (teamId, fechas, estado, paginación) |
+| PATCH | `/api/matches/{id}/result` | Establecer resultado (homeScore, awayScore) |
+| GET | `/api/standings` | Tabla de posiciones |
+| GET | `/api/standings/top-scorers` | Goleadores (`?limit=10`) |
+
+Respuestas: 200, 201, 204, 400, 404, 409. Formato paginado: `{ data, pageNumber, pageSize, totalRecords }`.
+
+---
+
+## Documentación
+
+| Documento | Contenido |
+|-----------|-----------|
+| [docs/README.md](docs/README.md) | Índice de toda la documentación |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Capas, CQRS, EF vs Dapper, idempotencia, Docker |
+| [docs/GIT_WORKFLOW.md](docs/GIT_WORKFLOW.md) | Ramas main/development/release, PRs, releases |
+| [docs/SUBIR_A_GITHUB.md](docs/SUBIR_A_GITHUB.md) | Crear repo y subir ramas (script `scripts/push-to-github.ps1`) |
+| [scripts/README.md](scripts/README.md) | Descripción de los scripts PowerShell (push, tests, Docker) |
+
+Postman: importar `postman/Mundialito-API.postman_collection.json` (variables: `baseUrl`, `idempotencyKey`).
+
+---
 
 ## Subir a GitHub
 
-El repo incluye las ramas **main**, **development** y **release**. Pasos: crear un repositorio nuevo en GitHub (sin README/.gitignore), luego en la raíz del proyecto:
+Repositorio con ramas **main**, **development** y **release**. Tras crear un repo vacío en GitHub:
 
 ```powershell
 git remote add origin https://github.com/TU_USUARIO/TU_REPO.git
@@ -13,131 +158,5 @@ git push -u origin development
 git push -u origin release
 ```
 
-O usa el script: `.\scripts\push-to-github.ps1 -GitHubUrl "https://github.com/TU_USUARIO/TU_REPO.git"`.  
-Guía completa: **docs/SUBIR_A_GITHUB.md**.
-
-## Features
-
-- **Teams** – CRUD, list with filters, pagination, sorting
-- **Players** – Per-team registration, filters, pagination
-- **Matches** – Create, update, set result (PATCH), filter by date/team/status
-- **Standings** – Auto-calculated table (points, goal differential, goals for) and top scorers
-- **Idempotency** – POST with `Idempotency-Key` returns same response on retry
-- **REST** – 200, 201, 204, 400, 404, 409; paginated response shape
-
-## Solution structure
-
-- **src/MundialitoCorporativo.Domain** – Entities, Result pattern
-- **src/MundialitoCorporativo.Application** – CQRS (commands/queries/handlers), DTOs, interfaces
-- **src/MundialitoCorporativo.Infrastructure** – EF Core DbContext, migrations, Dapper read repos, idempotency store
-- **src/MundialitoCorporativo.Api** – Controllers, middleware, HTTP mapping
-- **tests/MundialitoCorporativo.Tests** – Unit tests (standings logic, idempotency)
-- **frontend** – Next.js (React, TypeScript) for teams, players, matches, standings
-- **postman** – Postman collection (endpoints, idempotency, filters, pagination, errors)
-- **docs** – ARCHITECTURE.md, GIT_WORKFLOW.md
-
-## Prerequisites
-
-- .NET 8 SDK
-- Node 20+ (for frontend)
-- SQL Server (local or Docker)
-- Docker & Docker Compose (optional, for full stack)
-
-**Si el IDE muestra "Unable to retrieve project metadata. Ensure it's an SDK-style project":**
-- Abre la **carpeta raíz del repo** (donde está `MundialitoCorporativo.sln`), no una subcarpeta como `frontend`.
-- En Cursor/VS Code: **File → Open Folder** y elige la carpeta que contiene el `.sln`.
-- Los comandos `dotnet` y `dotnet ef` deben ejecutarse desde esa misma raíz, usando rutas al proyecto, por ejemplo:  
-  `dotnet ef database update --project src/MundialitoCorporativo.Infrastructure --startup-project src/MundialitoCorporativo.Api`
-
-## Run locally
-
-### Backend
-
-1. **SQL Server** (obligatorio). Una de estas opciones:
-   - **Docker:** `docker run -d --name mundialito-db -e "ACCEPT_EULA=Y" -e "MSSQL_SA_PASSWORD=MundialitoSecurePwd123!" -p 1433:1433 mcr.microsoft.com/mssql/server:2022-latest`
-   - O SQL Server local / LocalDB con la base `Mundialito`.
-2. Connection string en `src/MundialitoCorporativo.Api/appsettings.json` (por defecto: `Server=localhost,1433;Database=Mundialito;User Id=sa;Password=MundialitoSecurePwd123!;TrustServerCertificate=True;`).
-3. Ejecutar la API:
-   ```bash
-   cd src/MundialitoCorporativo.Api
-   dotnet run
-   ```
-   En el primer arranque se aplican migraciones y seed (4 equipos, 5 jugadores por equipo, 6 partidos con 3 resultados).
-
-   **Si la API no arranca** (error "Invalid object name 'Teams'" en logs): aplicar migraciones a mano una vez:
-   ```bash
-   dotnet tool install --global dotnet-ef   # solo la primera vez
-   dotnet ef database update --project src/MundialitoCorporativo.Infrastructure --startup-project src/MundialitoCorporativo.Api
-   ```
-   Luego volver a ejecutar `dotnet run`.
-
-**Probar sin levantar API (solo tests y build):**  
-`.\scripts\run-and-test.ps1 -SkipApi`  
-**Probar con API levantada:**  
-`.\scripts\run-and-test.ps1` (hace GET /api/teams).
-
-### Frontend
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-Open http://localhost:3000. Set `NEXT_PUBLIC_API_URL=http://localhost:5000` if the API is on another host/port.
-
-### Docker (full stack)
-
-```powershell
-docker compose up --build -d
-```
-
-La primera vez tarda varios minutos (descarga de imágenes: SQL Server ~500 MB, .NET, Node). Cuando los contenedores estén en ejecución:
-
-- **API:** http://localhost:5000 (Swagger: http://localhost:5000/swagger)
-- **Frontend:** http://localhost:3000
-- **DB:** localhost:1433 (usuario `sa`, contraseña en `docker-compose.yml`)
-
-Probar que la API responde después de levantar Docker:
-
-```powershell
-.\scripts\test-api-after-docker.ps1
-```
-
-## Tests
-
-```bash
-dotnet test tests/MundialitoCorporativo.Tests/MundialitoCorporativo.Tests.csproj
-```
-
-## Postman
-
-Import `postman/Mundialito-API.postman_collection.json`. Use variables `baseUrl` (e.g. http://localhost:5000) and `idempotencyKey` (e.g. `{{$guid}}`) for POST idempotency.
-
-## Architecture and Git
-
-- **docs/ARCHITECTURE.md** – Layers, CQRS, EF write path, Dapper read path, idempotency, Docker
-- **docs/GIT_WORKFLOW.md** – development, release, main; atomic commits and Pull Requests
-
-## API summary
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | /api/teams | List (pageNumber, pageSize, sortBy, sortDirection, name) |
-| GET | /api/teams/{id} | Get by id |
-| POST | /api/teams | Create (optional Idempotency-Key) |
-| PUT | /api/teams/{id} | Full update |
-| DELETE | /api/teams/{id} | Delete |
-| GET | /api/players | List (teamId, name, pagination, sort) |
-| GET | /api/players/{id} | Get by id |
-| POST | /api/players | Create (Idempotency-Key supported) |
-| PUT | /api/players/{id} | Full update |
-| DELETE | /api/players/{id} | Delete |
-| GET | /api/matches | List (teamId, dateFrom, dateTo, status, pagination) |
-| GET | /api/matches/{id} | Get by id |
-| POST | /api/matches | Create (Idempotency-Key supported) |
-| PUT | /api/matches/{id} | Full update |
-| PATCH | /api/matches/{id}/result | Set result (homeScore, awayScore) |
-| DELETE | /api/matches/{id} | Delete |
-| GET | /api/standings | League table |
-| GET | /api/standings/top-scorers | Top scorers (?limit=10) |
+O: `.\scripts\push-to-github.ps1 -GitHubUrl "https://github.com/TU_USUARIO/TU_REPO.git"`  
+Detalle en [docs/SUBIR_A_GITHUB.md](docs/SUBIR_A_GITHUB.md).

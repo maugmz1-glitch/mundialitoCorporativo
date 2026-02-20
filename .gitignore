@@ -6,7 +6,8 @@ out/
 
 # IDE
 .vs/
-.vscode/
+.vscode/*
+!.vscode/settings.json
 *.user
 *.suo
 *.userosscache
