@@ -1,9 +1,11 @@
-# Forzar Linux (evita contenedores Windows en Docker Desktop)
-FROM --platform=linux/amd64 mcr.microsoft.com/dotnet/aspnet:8.0 AS base
+# Plataforma por ARG (evita constante y permite multiarch en buildx)
+ARG TARGETPLATFORM=linux/amd64
+FROM --platform=$TARGETPLATFORM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
 WORKDIR /app
 EXPOSE 8080
 
-FROM --platform=linux/amd64 mcr.microsoft.com/dotnet/sdk:8.0 AS build
+ARG TARGETPLATFORM=linux/amd64
+FROM --platform=$TARGETPLATFORM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 COPY ["src/MundialitoCorporativo.Api/MundialitoCorporativo.Api.csproj", "MundialitoCorporativo.Api/"]
 COPY ["src/MundialitoCorporativo.Application/MundialitoCorporativo.Application.csproj", "MundialitoCorporativo.Application/"]

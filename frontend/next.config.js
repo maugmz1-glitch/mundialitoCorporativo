@@ -2,11 +2,9 @@
 const nextConfig = {
   output: 'standalone',
   reactStrictMode: true,
-  async rewrites() {
-    return [
-      { source: '/api/:path*', destination: `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/:path*` }
-    ];
-  },
+  // Proxy /api/* se hace en app/api/[...path]/route.ts (lee API_URL en runtime).
+  // Los rewrites aquí se evalúan en build time y en Docker no sirven (localhost ≠ api).
+  // rewrites() eliminado a propósito.
 };
 
 module.exports = nextConfig;

@@ -1,5 +1,6 @@
-# Forzar Linux (Alpine es Linux; explícito para consistencia)
-FROM --platform=linux/amd64 node:20-alpine AS base
+# Plataforma por ARG (permite multiarch y cumple regla FromPlatformFlagConstDisallowed)
+ARG TARGETPLATFORM=linux/amd64
+FROM --platform=$TARGETPLATFORM node:20-alpine AS base
 WORKDIR /app
 
 FROM base AS deps

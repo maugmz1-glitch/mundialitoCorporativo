@@ -31,7 +31,7 @@ public class ExceptionHandlingMiddleware
             context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
             context.Response.ContentType = "application/json";
             var message = _env.IsDevelopment() ? ex.Message : "Error interno del servidor. Revisa los logs.";
-            var body = JsonSerializer.Serialize(new { message });
+            var body = JsonSerializer.Serialize(new { message }, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
             await context.Response.WriteAsync(body);
         }
     }

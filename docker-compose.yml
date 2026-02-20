@@ -44,7 +44,10 @@ services:
     ports:
       - "3000:3000"
     environment:
-      NEXT_PUBLIC_API_URL: http://localhost:5000
+      # Rewrite /api/* desde el servidor Next.js hacia la API (nombre del servicio en Docker)
+      API_URL: http://api:8080
+      # Cliente: vacío para que el navegador pida a mismo origen (3000) y el rewrite actúe
+      NEXT_PUBLIC_API_URL: ""
     depends_on:
       - api
 
