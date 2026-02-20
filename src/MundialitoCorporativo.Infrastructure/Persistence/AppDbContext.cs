@@ -13,6 +13,7 @@ public class AppDbContext : DbContext, IAppDbContext
     public DbSet<Match> Matches => Set<Match>();
     public DbSet<MatchGoal> MatchGoals => Set<MatchGoal>();
     public DbSet<Referee> Referees => Set<Referee>();
+    public DbSet<User> Users => Set<User>();
     public DbSet<IdempotencyRecord> IdempotencyRecords => Set<IdempotencyRecord>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -51,6 +52,15 @@ public class AppDbContext : DbContext, IAppDbContext
             e.Property(x => x.FirstName).HasMaxLength(100).IsRequired();
             e.Property(x => x.LastName).HasMaxLength(100).IsRequired();
             e.Property(x => x.LicenseNumber).HasMaxLength(50);
+        });
+        modelBuilder.Entity<User>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.UserName).HasMaxLength(100).IsRequired();
+            e.Property(x => x.Email).HasMaxLength(256);
+            e.Property(x => x.PasswordHash).HasMaxLength(2000).IsRequired();
+            e.Property(x => x.Salt).HasMaxLength(2000).IsRequired();
+            e.HasIndex(x => x.UserName).IsUnique();
         });
         modelBuilder.Entity<IdempotencyRecord>(e =>
         {

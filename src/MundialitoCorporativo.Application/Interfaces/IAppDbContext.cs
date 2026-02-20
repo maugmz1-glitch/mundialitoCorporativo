@@ -10,6 +10,7 @@ public interface IAppDbContext
     DbSet<Match> Matches { get; }
     DbSet<MatchGoal> MatchGoals { get; }
     DbSet<Referee> Referees { get; }
+    DbSet<User> Users { get; }
     DbSet<IdempotencyRecord> IdempotencyRecords { get; }
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

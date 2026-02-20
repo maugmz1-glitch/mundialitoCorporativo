@@ -1,7 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { getAuthUser, clearAuth } from '@/lib/api';
 
 const links = [
   { href: '/', label: 'Inicio' },
@@ -14,6 +16,17 @@ const links = [
 
 export default function Nav() {
   const pathname = usePathname();
+  const router = useRouter();
+  const [user, setUser] = useState<string | null>(null);
+
+  useEffect(() => { setUser(getAuthUser()); }, [pathname]);
+
+  const handleLogout = () => {
+    clearAuth();
+    setUser(null);
+    router.push('/');
+    router.refresh();
+  };
 
   return (
     <nav className="nav">
@@ -30,6 +43,17 @@ export default function Nav() {
             {label}
           </Link>
         ))}
+        {user ? (
+          <span className="nav-user">
+            <span style={{ marginRight: '0.5rem' }}>{user}</span>
+            <button type="button" className="btn btn-small" onClick={handleLogout}>Cerrar sesión</button>
+          </span>
+        ) : (
+          <>
+            <Link href="/register" className={pathname === '/register' ? 'active' : undefined}>Crear cuenta</Link>
+            <Link href="/login" className={pathname === '/login' ? 'active' : undefined}>Iniciar sesión</Link>
+          </>
+        )}
       </div>
     </nav>
   );

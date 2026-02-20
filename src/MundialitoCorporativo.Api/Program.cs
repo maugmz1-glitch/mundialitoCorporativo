@@ -1,6 +1,7 @@
 // ========== CONFIGURACIÓN PRINCIPAL DE LA API ==========
 // Clean Architecture: Api solo orquesta; la lógica está en Application e Infrastructure.
 
+using MundialitoCorporativo.Api;
 using MundialitoCorporativo.Application;
 using MundialitoCorporativo.Infrastructure;
 using MundialitoCorporativo.Infrastructure.Persistence;
@@ -30,6 +31,24 @@ builder.Services.AddCors(options =>
     });
 });
 
+// Login básico: JWT. Configuración: Auth:Username, Auth:Password, Auth:SecretKey (mín. 32 caracteres).
+var secretKey = builder.Configuration["Auth:SecretKey"] ?? "MundialitoCorporativo-SecretKey-Minimo32Caracteres!";
+builder.Services.AddAuthentication(Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
+        {
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new Microsoft.IdentityModel.Tokens.SymmetricSecurityKey(System.Text.Encoding.UTF8.GetBytes(secretKey)),
+            ValidIssuer = "MundialitoCorporativo",
+            ValidAudience = "MundialitoCorporativo",
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ClockSkew = TimeSpan.Zero
+        };
+    });
+builder.Services.AddAuthorization();
+
 var app = builder.Build();
 
 // Espera inicial: solo en Docker (SQL tarda en aceptar conexiones desde otros contenedores). En local (localhost) 5s basta.
@@ -52,6 +71,15 @@ for (var i = 0; i < maxRetries; i++)
     }
 }
 
+try
+{
+    await app.EnsureDemoUserAsync();
+}
+catch (Exception ex)
+{
+    app.Logger.LogWarning(ex, "No se pudo crear el usuario demo; la API seguirá en ejecución.");
+}
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -64,7 +92,9 @@ app.UseMiddleware<MundialitoCorporativo.Api.Middleware.ExceptionHandlingMiddlewa
 app.UseMiddleware<MundialitoCorporativo.Api.Middleware.IdempotencyMiddleware>();
 app.UseCors();
 app.UseHttpsRedirection();
+app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.MapGet("/health", () => Results.Ok(new { status = "healthy" }));
 
 app.Run();
