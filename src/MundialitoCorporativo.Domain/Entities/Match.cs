@@ -5,6 +5,7 @@ public class Match
     public Guid Id { get; set; }
     public Guid HomeTeamId { get; set; }
     public Guid AwayTeamId { get; set; }
+    public Guid? RefereeId { get; set; }
     public DateTime ScheduledAtUtc { get; set; }
     public string? Venue { get; set; }
     public MatchStatus Status { get; set; }
@@ -15,7 +16,9 @@ public class Match
 
     public Team HomeTeam { get; set; } = null!;
     public Team AwayTeam { get; set; } = null!;
+    public Referee? Referee { get; set; }
     public ICollection<MatchGoal> Goals { get; set; } = new List<MatchGoal>();
+    public ICollection<MatchCard> Cards { get; set; } = new List<MatchCard>();
 }
 
 public enum MatchStatus

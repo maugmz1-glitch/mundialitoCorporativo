@@ -93,6 +93,14 @@ body {
   align-items: center;
 }
 
+.nav-user {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 0.5rem;
+  padding-left: 0.5rem;
+  border-left: 1px solid var(--nav-active);
+}
+
 .nav a {
   color: var(--nav-text);
   text-decoration: none;
@@ -237,6 +245,11 @@ tr:hover td {
 }
 
 .btn + .btn { margin-left: 0.5rem; }
+
+.btn-small {
+  padding: 0.35rem 0.6rem;
+  font-size: 0.8rem;
+}
 
 /* ----- Forms ----- */
 form label {

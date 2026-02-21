@@ -41,6 +41,14 @@ public class StandingsReadRepository : IStandingsReadRepository
            CASE WHEN AwayScore < HomeScore THEN 1 ELSE 0 END
     FROM Matches WHERE Status = 2 AND HomeScore IS NOT NULL AND AwayScore IS NOT NULL
 ),
+TeamCards AS (
+    SELECT p.TeamId,
+           SUM(CASE WHEN c.CardType = 0 THEN 1 ELSE 0 END) AS YellowCards,
+           SUM(CASE WHEN c.CardType = 1 THEN 1 ELSE 0 END) AS RedCards
+    FROM MatchCards c
+    INNER JOIN Players p ON c.PlayerId = p.Id
+    GROUP BY p.TeamId
+),
 Agg AS (
     SELECT t.Id AS TeamId, t.Name AS TeamName,
            ISNULL(SUM(cm.IsWin), 0) * 3 + ISNULL(SUM(cm.IsDraw), 0) AS Points,
@@ -50,11 +58,13 @@ Agg AS (
     LEFT JOIN CompletedMatches cm ON t.Id = cm.TeamId
     GROUP BY t.Id, t.Name
 )
-SELECT CAST(ROW_NUMBER() OVER (ORDER BY Points DESC, (GoalsFor - GoalsAgainst) DESC, GoalsFor DESC) AS INT) AS Rank,
-       TeamId, TeamName,
-       Won + Drawn + Lost AS Played, Won, Drawn, Lost,
-       GoalsFor, GoalsAgainst, (GoalsFor - GoalsAgainst) AS GoalDifferential, Points
-FROM Agg
+SELECT CAST(ROW_NUMBER() OVER (ORDER BY a.Points DESC, (a.GoalsFor - a.GoalsAgainst) DESC, a.GoalsFor DESC) AS INT) AS Rank,
+       a.TeamId, a.TeamName,
+       a.Won + a.Drawn + a.Lost AS Played, a.Won, a.Drawn, a.Lost,
+       a.GoalsFor, a.GoalsAgainst, (a.GoalsFor - a.GoalsAgainst) AS GoalDifferential, a.Points,
+       ISNULL(tc.YellowCards, 0) AS YellowCards, ISNULL(tc.RedCards, 0) AS RedCards
+FROM Agg a
+LEFT JOIN TeamCards tc ON a.TeamId = tc.TeamId
 ORDER BY Rank";
         var rows = (await conn.QueryAsync<StandingRowDto>(sql)).ToList();
         return rows;

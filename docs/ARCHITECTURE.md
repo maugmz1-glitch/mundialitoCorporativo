@@ -1,5 +1,16 @@
 # Mundialito Tournament – Architecture
 
+## Clean Architecture – reglas de dependencia
+
+| Capa | Proyecto | Depende de | Responsabilidad |
+|------|----------|------------|-----------------|
+| **Domain** | MundialitoCorporativo.Domain | Ninguno | Entidades, `Result<T>`, enums. Sin referencias a otros proyectos. |
+| **Application** | MundialitoCorporativo.Application | Domain | Casos de uso (CQRS): interfaces `IAppDbContext`, `I*ReadRepository`, `IIdempotencyStore`; Commands/Queries y Handlers con MediatR. |
+| **Infrastructure** | MundialitoCorporativo.Infrastructure | Application, Domain | Implementaciones: EF Core (DbContext, migraciones), Dapper (ReadRepositories), IdempotencyStore. |
+| **Api** | MundialitoCorporativo.Api | Application, Infrastructure | Controllers, middleware (Idempotency, Exception), mapeo Result→HTTP. No referencia Domain directamente (acceso vía Application). |
+
+La API solo orquesta: recibe HTTP, envía Commands/Queries por MediatR y traduce `Result` a códigos HTTP. Toda la lógica de negocio y acceso a datos está en Application e Infrastructure.
+
 ## High-level diagram
 
 ```

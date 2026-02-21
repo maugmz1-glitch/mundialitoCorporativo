@@ -4,7 +4,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 
-const BACKEND = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+const BACKEND = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:5000';
 
 type Params = { path: string[] };
 
@@ -53,7 +53,10 @@ async function proxy(
   }
 
   try {
-    const res = await fetch(url, { method, headers, body });
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 30000);
+    const res = await fetch(url, { method, headers, body, signal: controller.signal });
+    clearTimeout(timeout);
     const contentType = res.headers.get('content-type') || 'application/json';
     const data = res.status === 204 ? null : await res.text();
     return new NextResponse(data, {
@@ -63,6 +66,9 @@ async function proxy(
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Backend unreachable';
-    return NextResponse.json({ message }, { status: 502 });
+    const detail = err instanceof Error && err.name === 'AbortError'
+      ? 'La API no respondió a tiempo.'
+      : 'Comprueba que la API esté en ejecución. Desde la raíz del repo: dotnet run --project src/MundialitoCorporativo.Api';
+    return NextResponse.json({ message: `${message}. ${detail}` }, { status: 502 });
   }
 }

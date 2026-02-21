@@ -3,4 +3,4 @@ using MundialitoCorporativo.Application.Matches.Queries;
 
 namespace MundialitoCorporativo.Application.Matches.Commands;
 
-public record UpdateMatchCommand(Guid Id, Guid HomeTeamId, Guid AwayTeamId, DateTime ScheduledAtUtc, string? Venue, int Status) : IRequest<MatchDto>;
+public record UpdateMatchCommand(Guid Id, Guid HomeTeamId, Guid AwayTeamId, Guid? RefereeId, DateTime ScheduledAtUtc, string? Venue, int Status) : IRequest<MatchDto>;

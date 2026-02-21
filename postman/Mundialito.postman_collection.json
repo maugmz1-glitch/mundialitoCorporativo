@@ -1,0 +1,297 @@
+{
+  "info": {
+    "name": "Mundialito API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Todos los endpoints. Casos: Idempotencia (POST con Idempotency-Key), Filtros, Paginación, Manejo de errores (400, 404, 409)."
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5000" },
+    { "key": "idempotencyKey", "value": "{{$guid}}" },
+    { "key": "matchId", "value": "11111111-1111-1111-1111-111111111111" },
+    { "key": "token", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"userName\":\"testuser\",\"email\":\"test@example.com\",\"password\":\"Test123!\"}" },
+            "url": "{{baseUrl}}/api/auth/register"
+          }
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": ["var j = pm.response.json(); if (j && j.token) pm.collectionVariables.set('token', j.token);"],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"username\":\"testuser\",\"password\":\"Test123!\"}" },
+            "url": "{{baseUrl}}/api/auth/login"
+          }
+        },
+        {
+          "name": "Me (requiere token)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/api/auth/me"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Teams",
+      "item": [
+        {
+          "name": "List teams (paginación)",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/teams?pageNumber=1&pageSize=10&sortBy=Name&sortDirection=asc", "host": ["{{baseUrl}}"], "path": ["api", "teams"], "query": [{ "key": "pageNumber", "value": "1" }, { "key": "pageSize", "value": "10" }, { "key": "sortBy", "value": "Name" }, { "key": "sortDirection", "value": "asc" }] }
+          }
+        },
+        {
+          "name": "List teams (filtro por nombre)",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/teams?name=Alpha", "host": ["{{baseUrl}}"], "path": ["api", "teams"], "query": [{ "key": "name", "value": "Alpha" }] }
+          }
+        },
+        {
+          "name": "Get team by ID",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/teams/11111111-1111-1111-1111-111111111101" }
+        },
+        {
+          "name": "Create team (idempotente)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Idempotency-Key", "value": "{{idempotencyKey}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"name\":\"New Team\",\"logoUrl\":null}" },
+            "url": "{{baseUrl}}/api/teams"
+          }
+        },
+        {
+          "name": "Update team",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"name\":\"Updated Team\",\"logoUrl\":\"https://example.com/logo.png\"}" },
+            "url": "{{baseUrl}}/api/teams/11111111-1111-1111-1111-111111111101"
+          }
+        },
+        {
+          "name": "Delete team",
+          "request": { "method": "DELETE", "url": "{{baseUrl}}/api/teams/11111111-1111-1111-1111-111111111101" }
+        }
+      ]
+    },
+    {
+      "name": "Players",
+      "item": [
+        {
+          "name": "List players (paginación)",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/players?pageNumber=1&pageSize=10&sortBy=LastName&sortDirection=asc", "host": ["{{baseUrl}}"], "path": ["api", "players"], "query": [{ "key": "pageNumber", "value": "1" }, { "key": "pageSize", "value": "10" }, { "key": "sortBy", "value": "LastName" }, { "key": "sortDirection", "value": "asc" }] }
+          }
+        },
+        {
+          "name": "List players (filtro por equipo)",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/players?teamId=11111111-1111-1111-1111-111111111101", "host": ["{{baseUrl}}"], "path": ["api", "players"], "query": [{ "key": "teamId", "value": "11111111-1111-1111-1111-111111111101" }] }
+          }
+        },
+        {
+          "name": "Get player by ID",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/players/11111111-1111-1111-1111-111111111201" }
+        },
+        {
+          "name": "Create player (idempotente)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Idempotency-Key", "value": "{{idempotencyKey}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"teamId\":\"11111111-1111-1111-1111-111111111101\",\"firstName\":\"John\",\"lastName\":\"Doe\",\"jerseyNumber\":\"7\",\"position\":\"Forward\"}" },
+            "url": "{{baseUrl}}/api/players"
+          }
+        },
+        {
+          "name": "Update player",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"teamId\":\"11111111-1111-1111-1111-111111111101\",\"firstName\":\"John\",\"lastName\":\"Doe Updated\",\"jerseyNumber\":\"10\",\"position\":\"Midfielder\"}" },
+            "url": "{{baseUrl}}/api/players/11111111-1111-1111-1111-111111111201"
+          }
+        },
+        {
+          "name": "Delete player",
+          "request": { "method": "DELETE", "url": "{{baseUrl}}/api/players/11111111-1111-1111-1111-111111111201" }
+        }
+      ]
+    },
+    {
+      "name": "Matches",
+      "item": [
+        {
+          "name": "List matches (paginación)",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/matches?pageNumber=1&pageSize=10", "host": ["{{baseUrl}}"], "path": ["api", "matches"], "query": [{ "key": "pageNumber", "value": "1" }, { "key": "pageSize", "value": "10" }] }
+          }
+        },
+        {
+          "name": "List matches (filtro por estado)",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/matches?status=2", "host": ["{{baseUrl}}"], "path": ["api", "matches"], "query": [{ "key": "status", "value": "2" }] }
+          }
+        },
+        {
+          "name": "Get match by ID",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/matches/{{matchId}}" }
+        },
+        {
+          "name": "Create match (idempotente)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Idempotency-Key", "value": "{{idempotencyKey}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"homeTeamId\":\"11111111-1111-1111-1111-111111111101\",\"awayTeamId\":\"11111111-1111-1111-1111-111111111102\",\"refereeId\":null,\"scheduledAtUtc\":\"2025-06-01T15:00:00Z\",\"venue\":\"Stadium A\"}" },
+            "url": "{{baseUrl}}/api/matches"
+          }
+        },
+        {
+          "name": "Update match",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"homeTeamId\":\"11111111-1111-1111-1111-111111111101\",\"awayTeamId\":\"11111111-1111-1111-1111-111111111102\",\"refereeId\":null,\"scheduledAtUtc\":\"2025-06-02T18:00:00Z\",\"venue\":\"Stadium B\",\"status\":0}" },
+            "url": "{{baseUrl}}/api/matches/{{matchId}}"
+          }
+        },
+        {
+          "name": "Set match result (PATCH)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"homeScore\":2,\"awayScore\":1}" },
+            "url": "{{baseUrl}}/api/matches/{{matchId}}/result"
+          }
+        },
+        {
+          "name": "Add card to match (idempotente)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Idempotency-Key", "value": "{{idempotencyKey}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"playerId\":\"11111111-1111-1111-1111-111111111201\",\"cardType\":0,\"minute\":65}" },
+            "url": "{{baseUrl}}/api/matches/{{matchId}}/cards"
+          }
+        },
+        {
+          "name": "Delete match",
+          "request": { "method": "DELETE", "url": "{{baseUrl}}/api/matches/{{matchId}}" }
+        }
+      ]
+    },
+    {
+      "name": "Referees",
+      "item": [
+        {
+          "name": "List referees (paginación)",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/referees?pageNumber=1&pageSize=10&sortBy=LastName&sortDirection=asc", "host": ["{{baseUrl}}"], "path": ["api", "referees"], "query": [{ "key": "pageNumber", "value": "1" }, { "key": "pageSize", "value": "10" }, { "key": "sortBy", "value": "LastName" }, { "key": "sortDirection", "value": "asc" }] }
+          }
+        },
+        {
+          "name": "List referees (filtro por nombre)",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/referees?name=Ref", "host": ["{{baseUrl}}"], "path": ["api", "referees"], "query": [{ "key": "name", "value": "Ref" }] }
+          }
+        },
+        {
+          "name": "Get referee by ID",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/referees/11111111-1111-1111-1111-111111111301" }
+        },
+        {
+          "name": "Create referee (idempotente)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Idempotency-Key", "value": "{{idempotencyKey}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"firstName\":\"Carlos\",\"lastName\":\"Referee\",\"licenseNumber\":\"REF-001\"}" },
+            "url": "{{baseUrl}}/api/referees"
+          }
+        },
+        {
+          "name": "Update referee",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"firstName\":\"Carlos\",\"lastName\":\"Referee Updated\",\"licenseNumber\":\"REF-001\"}" },
+            "url": "{{baseUrl}}/api/referees/11111111-1111-1111-1111-111111111301"
+          }
+        },
+        {
+          "name": "Delete referee",
+          "request": { "method": "DELETE", "url": "{{baseUrl}}/api/referees/11111111-1111-1111-1111-111111111301" }
+        }
+      ]
+    },
+    {
+      "name": "Standings",
+      "item": [
+        { "name": "Get standings", "request": { "method": "GET", "url": "{{baseUrl}}/api/standings" } },
+        {
+          "name": "Get top scorers",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/standings/top-scorers?limit=10", "host": ["{{baseUrl}}"], "path": ["api", "standings", "top-scorers"], "query": [{ "key": "limit", "value": "10" }] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Manejo de errores",
+      "item": [
+        {
+          "name": "404 Not Found (team)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/teams/00000000-0000-0000-0000-000000000000" }
+        },
+        {
+          "name": "400 Bad Request (validación nombre vacío)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"name\":\"\",\"logoUrl\":null}" },
+            "url": "{{baseUrl}}/api/teams"
+          }
+        },
+        {
+          "name": "409 Conflict (equipo duplicado)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Idempotency-Key", "value": "{{$guid}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"name\":\"Team Alpha\",\"logoUrl\":null}" },
+            "url": "{{baseUrl}}/api/teams"
+          }
+        },
+        {
+          "name": "404 Not Found (player)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/players/00000000-0000-0000-0000-000000000000" }
+        }
+      ]
+    }
+  ]
+}

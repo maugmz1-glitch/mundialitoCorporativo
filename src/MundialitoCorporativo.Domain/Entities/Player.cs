@@ -13,4 +13,5 @@ public class Player
 
     public Team Team { get; set; } = null!;
     public ICollection<MatchGoal> GoalsScored { get; set; } = new List<MatchGoal>();
+    public ICollection<MatchCard> Cards { get; set; } = new List<MatchCard>();
 }

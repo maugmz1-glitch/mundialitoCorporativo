@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { fetchApi } from '@/lib/api';
 import Loading from '../Loading';
 
-type Standing = { rank: number; teamId: string; teamName: string; played: number; won: number; drawn: number; lost: number; goalsFor: number; goalsAgainst: number; goalDifferential: number; points: number };
+type Standing = { rank: number; teamId: string; teamName: string; played: number; won: number; drawn: number; lost: number; goalsFor: number; goalsAgainst: number; goalDifferential: number; points: number; yellowCards: number; redCards: number };
 type TopScorer = { playerId: string; playerName: string; teamName: string; goals: number };
 
 export default function StandingsPage() {
@@ -56,6 +56,8 @@ export default function StandingsPage() {
             <th>GC</th>
             <th>DG</th>
             <th>Pts</th>
+            <th title="Tarjetas amarillas">TA</th>
+            <th title="Tarjetas rojas">TR</th>
           </tr>
         </thead>
         <tbody>
@@ -71,6 +73,8 @@ export default function StandingsPage() {
               <td>{row.goalsAgainst}</td>
               <td>{row.goalDifferential}</td>
               <td><strong>{row.points}</strong></td>
+              <td>{row.yellowCards}</td>
+              <td>{row.redCards}</td>
             </tr>
           ))}
         </tbody>

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
+import { Suspense } from 'react';
 import './globals.css';
-import Nav from './Nav';
+import AuthGuard from './AuthGuard';
 
 export const metadata: Metadata = {
   title: 'Mundialito Corporativo',
@@ -15,13 +16,9 @@ export default function RootLayout({
   return (
     <html lang="es">
       <body>
-        <header className="top-bar">
-          <span>Mundialito Corporativo</span>
-          <span className="top-bar-sep">|</span>
-          <span>Equipos · Jugadores · Partidos · Posiciones</span>
-        </header>
-        <Nav />
-        <main className="main">{children}</main>
+        <Suspense fallback={<div className="main" style={{ padding: '2rem', textAlign: 'center' }}>Cargando…</div>}>
+          <AuthGuard>{children}</AuthGuard>
+        </Suspense>
       </body>
     </html>
   );
