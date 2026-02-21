@@ -45,7 +45,7 @@ public class MatchesController : ControllerBase
     [ProducesResponseType(404)]
     public async Task<IActionResult> Create([FromBody] CreateMatchRequest request, CancellationToken cancellationToken)
     {
-        var result = await _mediator.Send(new CreateMatchCommand(request.HomeTeamId, request.AwayTeamId, request.ScheduledAtUtc, request.Venue), cancellationToken);
+        var result = await _mediator.Send(new CreateMatchCommand(request.HomeTeamId, request.AwayTeamId, request.RefereeId, request.ScheduledAtUtc, request.Venue), cancellationToken);
         if (!result.IsSuccess) return result.ToActionResult();
         return CreatedAtAction(nameof(GetById), new { id = result.Data!.Id }, result.Data);
     }
@@ -56,7 +56,7 @@ public class MatchesController : ControllerBase
     [ProducesResponseType(404)]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateMatchRequest request, CancellationToken cancellationToken)
     {
-        var result = await _mediator.Send(new UpdateMatchCommand(id, request.HomeTeamId, request.AwayTeamId, request.ScheduledAtUtc, request.Venue, request.Status), cancellationToken);
+        var result = await _mediator.Send(new UpdateMatchCommand(id, request.HomeTeamId, request.AwayTeamId, request.RefereeId, request.ScheduledAtUtc, request.Venue, request.Status), cancellationToken);
         if (!result.IsSuccess) return result.ToActionResult();
         return Ok(result.Data);
     }
@@ -72,6 +72,17 @@ public class MatchesController : ControllerBase
         return Ok(result.Data);
     }
 
+    [HttpPost("{id:guid}/cards")]
+    [ProducesResponseType(201)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> AddCard(Guid id, [FromBody] AddMatchCardRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(new AddMatchCardCommand(id, request.PlayerId, request.CardType, request.Minute), cancellationToken);
+        if (!result.IsSuccess) return result.ToActionResult();
+        return CreatedAtAction(nameof(GetById), new { id }, result.Data);
+    }
+
     [HttpDelete("{id:guid}")]
     [ProducesResponseType(204)]
     [ProducesResponseType(404)]
@@ -84,6 +95,7 @@ public class MatchesController : ControllerBase
 
 }
 
-public record CreateMatchRequest(Guid HomeTeamId, Guid AwayTeamId, DateTime ScheduledAtUtc, string? Venue);
-public record UpdateMatchRequest(Guid HomeTeamId, Guid AwayTeamId, DateTime ScheduledAtUtc, string? Venue, int Status);
+public record CreateMatchRequest(Guid HomeTeamId, Guid AwayTeamId, Guid? RefereeId, DateTime ScheduledAtUtc, string? Venue);
+public record UpdateMatchRequest(Guid HomeTeamId, Guid AwayTeamId, Guid? RefereeId, DateTime ScheduledAtUtc, string? Venue, int Status);
 public record SetMatchResultRequest(int HomeScore, int AwayScore);
+public record AddMatchCardRequest(Guid PlayerId, int CardType, int Minute);

@@ -29,8 +29,11 @@ public class UpdateMatchCommandHandler : IRequestHandler<UpdateMatchCommand, Res
             return Result.Failure<MatchDto>("Home team not found.", ErrorCodes.NotFound);
         if (await _db.Teams.FindAsync([request.AwayTeamId], cancellationToken) == null)
             return Result.Failure<MatchDto>("Away team not found.", ErrorCodes.NotFound);
+        if (request.RefereeId.HasValue && await _db.Referees.FindAsync([request.RefereeId.Value], cancellationToken) == null)
+            return Result.Failure<MatchDto>("Referee not found.", ErrorCodes.NotFound);
         match.HomeTeamId = request.HomeTeamId;
         match.AwayTeamId = request.AwayTeamId;
+        match.RefereeId = request.RefereeId;
         match.ScheduledAtUtc = request.ScheduledAtUtc;
         match.Venue = request.Venue?.Trim();
         match.Status = (MatchStatus)request.Status;

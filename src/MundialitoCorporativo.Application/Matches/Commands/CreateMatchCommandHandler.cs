@@ -26,11 +26,14 @@ public class CreateMatchCommandHandler : IRequestHandler<CreateMatchCommand, Res
             return Result.Failure<MatchDto>("Home team not found.", ErrorCodes.NotFound);
         if (await _db.Teams.FindAsync([request.AwayTeamId], cancellationToken) == null)
             return Result.Failure<MatchDto>("Away team not found.", ErrorCodes.NotFound);
+        if (request.RefereeId.HasValue && await _db.Referees.FindAsync([request.RefereeId.Value], cancellationToken) == null)
+            return Result.Failure<MatchDto>("Referee not found.", ErrorCodes.NotFound);
         var match = new Match
         {
             Id = Guid.NewGuid(),
             HomeTeamId = request.HomeTeamId,
             AwayTeamId = request.AwayTeamId,
+            RefereeId = request.RefereeId,
             ScheduledAtUtc = request.ScheduledAtUtc,
             Venue = request.Venue?.Trim(),
             Status = MatchStatus.Scheduled,

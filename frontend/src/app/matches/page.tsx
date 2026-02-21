@@ -1,35 +1,53 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { fetchPaged, postApi, putApi, patchApi, deleteApi } from '@/lib/api';
+import { fetchApi, fetchPaged, postApi, patchApi, deleteApi } from '@/lib/api';
 import type { Paged } from '@/lib/api';
 import Loading from '../Loading';
 
 type Team = { id: string; name: string };
+type Referee = { id: string; firstName: string; lastName: string };
+type Player = { id: string; teamId: string; firstName: string; lastName: string; teamName: string };
+type MatchCard = { id: string; playerId: string; playerName: string; cardType: number; minute: number };
+type MatchDetail = {
+  id: string; homeTeamId: string; awayTeamId: string; refereeId: string | null; refereeName: string | null;
+  scheduledAtUtc: string; venue: string | null; status: number; homeScore: number | null; awayScore: number | null;
+  homeTeamName: string; awayTeamName: string; cards: MatchCard[];
+};
 type Match = {
-  id: string; homeTeamId: string; awayTeamId: string; scheduledAtUtc: string; venue: string | null;
+  id: string; homeTeamId: string; awayTeamId: string; refereeId: string | null; refereeName: string | null;
+  scheduledAtUtc: string; venue: string | null;
   status: number; homeScore: number | null; awayScore: number | null;
   homeTeamName: string; awayTeamName: string;
 };
 
 const statusLabels: Record<number, string> = { 0: 'Programado', 1: 'En curso', 2: 'Finalizado', 3: 'Aplazado', 4: 'Cancelado' };
+const cardTypeLabels: Record<number, string> = { 0: 'Amarilla', 1: 'Roja' };
 
 export default function MatchesPage() {
   const [paged, setPaged] = useState<Paged<Match> | null>(null);
   const [teams, setTeams] = useState<Team[]>([]);
+  const [referees, setReferees] = useState<Referee[]>([]);
   const [page, setPage] = useState(1);
   const [status, setStatus] = useState<number | ''>('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [form, setForm] = useState({ homeTeamId: '', awayTeamId: '', scheduledAtUtc: '', venue: '' });
+  const [form, setForm] = useState({ homeTeamId: '', awayTeamId: '', refereeId: '', scheduledAtUtc: '', venue: '' });
   const [resultMatch, setResultMatch] = useState<Match | null>(null);
   const [resultHome, setResultHome] = useState(0);
   const [resultAway, setResultAway] = useState(0);
+  const [cardMatch, setCardMatch] = useState<MatchDetail | null>(null);
+  const [matchPlayers, setMatchPlayers] = useState<Player[]>([]);
+  const [cardForm, setCardForm] = useState({ playerId: '', cardType: 0, minute: 0 });
 
   const loadTeams = async () => {
     const r = await fetchPaged<Team>('/api/teams', { pageSize: 100 });
     setTeams(r.data);
     if (!form.homeTeamId && r.data[0]) setForm(f => ({ ...f, homeTeamId: r.data[0].id, awayTeamId: r.data[1]?.id ?? r.data[0].id }));
+  };
+  const loadReferees = async () => {
+    const r = await fetchPaged<Referee>('/api/referees', { pageSize: 100 });
+    setReferees(r.data);
   };
 
   const load = async () => {
@@ -49,8 +67,45 @@ export default function MatchesPage() {
     }
   };
 
-  useEffect(() => { loadTeams(); }, []);
+  useEffect(() => { loadTeams(); loadReferees(); }, []);
   useEffect(() => { load(); }, [page, status]);
+
+  const openCardPanel = async (m: Match) => {
+    setError(null);
+    setCardMatch(null);
+    setMatchPlayers([]);
+    setCardForm({ playerId: '', cardType: 0, minute: 0 });
+    try {
+      const detail = await fetchApi<MatchDetail>(`/api/matches/${m.id}`);
+      setCardMatch(detail);
+      const [homePl, awayPl] = await Promise.all([
+        fetchPaged<Player>('/api/players', { teamId: m.homeTeamId, pageSize: 50 }),
+        fetchPaged<Player>('/api/players', { teamId: m.awayTeamId, pageSize: 50 }),
+      ]);
+      setMatchPlayers([...homePl.data.map(p => ({ ...p, teamName: m.homeTeamName })), ...awayPl.data.map(p => ({ ...p, teamName: m.awayTeamName }))]);
+      if (homePl.data[0] || awayPl.data[0]) setCardForm(f => ({ ...f, playerId: homePl.data[0]?.id ?? awayPl.data[0]?.id ?? '' }));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Error al cargar partido');
+    }
+  };
+
+  const handleAddCard = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!cardMatch || !cardForm.playerId) return;
+    setError(null);
+    try {
+      await postApi(`/api/matches/${cardMatch.id}/cards`, {
+        playerId: cardForm.playerId,
+        cardType: cardForm.cardType,
+        minute: cardForm.minute,
+      }, `match-card-${cardMatch.id}-${Date.now()}`);
+      const updated = await fetchApi<MatchDetail>(`/api/matches/${cardMatch.id}`);
+      setCardMatch(updated);
+      setCardForm(f => ({ ...f, minute: 0 }));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Error al registrar tarjeta');
+    }
+  };
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,6 +114,7 @@ export default function MatchesPage() {
       await postApi('/api/matches', {
         homeTeamId: form.homeTeamId,
         awayTeamId: form.awayTeamId,
+        ...(form.refereeId ? { refereeId: form.refereeId } : {}),
         scheduledAtUtc: form.scheduledAtUtc || new Date().toISOString(),
         venue: form.venue || null,
       }, `match-create-${Date.now()}`);
@@ -114,6 +170,11 @@ export default function MatchesPage() {
           <select value={form.awayTeamId} onChange={e => setForm(f => ({ ...f, awayTeamId: e.target.value }))} required>
             {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
           </select>
+          <label>Árbitro</label>
+          <select value={form.refereeId} onChange={e => setForm(f => ({ ...f, refereeId: e.target.value }))}>
+            <option value="">Sin asignar</option>
+            {referees.map(r => <option key={r.id} value={r.id}>{r.firstName} {r.lastName}</option>)}
+          </select>
           <label>Fecha y hora (UTC)</label>
           <input type="datetime-local" value={form.scheduledAtUtc} onChange={e => setForm(f => ({ ...f, scheduledAtUtc: e.target.value }))} />
           <label>Sede</label>
@@ -133,6 +194,46 @@ export default function MatchesPage() {
           </form>
         </div>
       )}
+      {cardMatch && (
+        <div className="card">
+          <h2>Tarjetas del partido: {cardMatch.homeTeamName} vs {cardMatch.awayTeamName}</h2>
+          {cardMatch.cards.length > 0 && (
+            <div className="table-wrap" style={{ marginBottom: '1rem' }}>
+              <table>
+                <thead>
+                  <tr><th>Jugador</th><th>Tipo</th><th>Min</th></tr>
+                </thead>
+                <tbody>
+                  {cardMatch.cards.map(c => (
+                    <tr key={c.id}>
+                      <td>{c.playerName}</td>
+                      <td>{cardTypeLabels[c.cardType] ?? c.cardType}</td>
+                      <td>{c.minute}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+          <form onSubmit={handleAddCard}>
+            <label>Jugador</label>
+            <select value={cardForm.playerId} onChange={e => setCardForm(f => ({ ...f, playerId: e.target.value }))} required disabled={matchPlayers.length === 0}>
+              {matchPlayers.length === 0 && <option value="">Sin jugadores en los equipos</option>}
+              {matchPlayers.map(p => (
+                <option key={p.id} value={p.id}>{p.firstName} {p.lastName} ({p.teamName})</option>
+              ))}
+            </select>
+            <label>Tipo</label>
+            <select value={cardForm.cardType} onChange={e => setCardForm(f => ({ ...f, cardType: Number(e.target.value) }))}>
+              {Object.entries(cardTypeLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+            </select>
+            <label>Minuto</label>
+            <input type="number" min={0} max={999} value={cardForm.minute || ''} onChange={e => setCardForm(f => ({ ...f, minute: parseInt(e.target.value, 10) || 0 }))} />
+            <button type="submit" className="btn btn-primary" disabled={!cardForm.playerId || matchPlayers.length === 0}>Registrar tarjeta</button>
+            <button type="button" className="btn" onClick={() => setCardMatch(null)}>Cerrar</button>
+          </form>
+        </div>
+      )}
       {loading && <Loading />}
       {paged && !loading && (
         <>
@@ -143,6 +244,7 @@ export default function MatchesPage() {
                 <th>Local</th>
                 <th>Resultado</th>
                 <th>Visitante</th>
+                <th>Árbitro</th>
                 <th>Fecha</th>
                 <th>Estado</th>
                 <th>Acciones</th>
@@ -154,9 +256,11 @@ export default function MatchesPage() {
                   <td>{m.homeTeamName}</td>
                   <td>{m.homeScore != null && m.awayScore != null ? `${m.homeScore} – ${m.awayScore}` : '—'}</td>
                   <td>{m.awayTeamName}</td>
+                  <td>{m.refereeName ?? '—'}</td>
                   <td>{new Date(m.scheduledAtUtc).toLocaleString()}</td>
                   <td>{statusLabels[m.status] ?? m.status}</td>
                   <td>
+                    <button className="btn" onClick={() => openCardPanel(m)}>Tarjetas</button>
                     {m.status !== 2 && <button className="btn" onClick={() => { setResultMatch(m); setResultHome(0); setResultAway(0); }}>Cargar resultado</button>}
                     <button className="btn btn-danger" onClick={() => handleDelete(m.id)}>Eliminar</button>
                   </td>

@@ -1,7 +1,10 @@
+using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Configuration;
 using Microsoft.EntityFrameworkCore;
 using MundialitoCorporativo.Api.Services;
 using MundialitoCorporativo.Application.Interfaces;
 using MundialitoCorporativo.Domain.Entities;
+using MundialitoCorporativo.Infrastructure.Persistence;
 
 namespace MundialitoCorporativo.Api;
 
@@ -17,6 +20,35 @@ public static class DemoUserSeed
     {
         using var scope = host.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<IAppDbContext>();
+        var configuration = scope.ServiceProvider.GetRequiredService<IConfiguration>();
+
+        // Asegurar que PasswordHash y Salt sean nvarchar(max) con conexión propia (evita truncado si la migración no se aplicó).
+        var connStr = configuration.GetConnectionString("DefaultConnection");
+        if (!string.IsNullOrEmpty(connStr))
+        {
+            try
+            {
+                await using var conn = new SqlConnection(connStr);
+                await conn.OpenAsync();
+                await using (var cmd = conn.CreateCommand())
+                {
+                    cmd.CommandText = "ALTER TABLE [dbo].[Users] ALTER COLUMN [PasswordHash] nvarchar(max) NOT NULL";
+                    cmd.CommandTimeout = 30;
+                    await cmd.ExecuteNonQueryAsync();
+                }
+                await using (var cmd = conn.CreateCommand())
+                {
+                    cmd.CommandText = "ALTER TABLE [dbo].[Users] ALTER COLUMN [Salt] nvarchar(max) NOT NULL";
+                    cmd.CommandTimeout = 30;
+                    await cmd.ExecuteNonQueryAsync();
+                }
+            }
+            catch (Exception)
+            {
+                // Tabla no existe o ya está bien; seguimos.
+            }
+        }
+
         if (await db.Users.AnyAsync()) return;
 
         var (hash, salt) = PasswordHasher.HashPassword(DemoPassword);

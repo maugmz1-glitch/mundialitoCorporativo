@@ -4,7 +4,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 
-const BACKEND = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+const BACKEND = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:5000';
 
 type Params = { path: string[] };
 
@@ -68,7 +68,7 @@ async function proxy(
     const message = err instanceof Error ? err.message : 'Backend unreachable';
     const detail = err instanceof Error && err.name === 'AbortError'
       ? 'La API no respondió a tiempo.'
-      : 'Comprueba que la API esté en ejecución (puerto 5000 o contenedor api).';
+      : 'Comprueba que la API esté en ejecución. Desde la raíz del repo: dotnet run --project src/MundialitoCorporativo.Api';
     return NextResponse.json({ message: `${message}. ${detail}` }, { status: 502 });
   }
 }

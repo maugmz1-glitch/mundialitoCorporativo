@@ -12,12 +12,17 @@ public static class DependencyInjection
     {
         services.AddDbContext<AppDbContext>(options =>
             options.UseSqlServer(configuration.GetConnectionString("DefaultConnection"),
-                b => b.MigrationsAssembly("MundialitoCorporativo.Infrastructure")));
+                b =>
+                {
+                    b.MigrationsAssembly("MundialitoCorporativo.Infrastructure");
+                    b.EnableRetryOnFailure(maxRetryCount: 5, maxRetryDelay: TimeSpan.FromSeconds(10), errorNumbersToAdd: null);
+                }));
         services.AddScoped<IAppDbContext>(sp => sp.GetRequiredService<AppDbContext>());
         services.AddScoped<ITeamReadRepository, TeamReadRepository>();
         services.AddScoped<IPlayerReadRepository, PlayerReadRepository>();
         services.AddScoped<IMatchReadRepository, MatchReadRepository>();
         services.AddScoped<IStandingsReadRepository, StandingsReadRepository>();
+        services.AddScoped<IRefereeReadRepository, RefereeReadRepository>();
         services.AddScoped<IIdempotencyStore, IdempotencyStore>();
         return services;
     }

@@ -45,7 +45,11 @@ public static class SeedData
         {
             try
             {
-                if (await db.Teams.AnyAsync()) return;
+                if (await db.Teams.AnyAsync())
+                {
+                    await EnsureSampleRefereesGoalsAndCardsAsync(db);
+                    return;
+                }
                 break;
             }
             catch (Microsoft.Data.SqlClient.SqlException ex) when (ex.Number == 208)
@@ -88,6 +92,121 @@ public static class SeedData
         var m6 = new Match { Id = Guid.NewGuid(), HomeTeamId = t4.Id, AwayTeamId = t1.Id, ScheduledAtUtc = baseDate.AddDays(6), Venue = "Stadium B", Status = MatchStatus.Scheduled, CreatedAtUtc = DateTime.UtcNow };
         db.Matches.AddRange(m1, m2, m3, m4, m5, m6);
 
+        // Árbitros de ejemplo
+        var r1 = new Referee { Id = Guid.NewGuid(), FirstName = "Carlos", LastName = "Ramos", LicenseNumber = "REF-001", CreatedAtUtc = DateTime.UtcNow };
+        var r2 = new Referee { Id = Guid.NewGuid(), FirstName = "María", LastName = "García", LicenseNumber = "REF-002", CreatedAtUtc = DateTime.UtcNow };
+        var r3 = new Referee { Id = Guid.NewGuid(), FirstName = "Luis", LastName = "Martínez", LicenseNumber = "REF-003", CreatedAtUtc = DateTime.UtcNow };
+        var r4 = new Referee { Id = Guid.NewGuid(), FirstName = "Ana", LastName = "López", LicenseNumber = "REF-004", CreatedAtUtc = DateTime.UtcNow };
+        db.Referees.AddRange(r1, r2, r3, r4);
+        m1.RefereeId = r1.Id;
+        m2.RefereeId = r2.Id;
+        m3.RefereeId = r3.Id;
+        m4.RefereeId = r4.Id;
+
         await db.SaveChangesAsync();
+
+        // Goles por jugador: resultado profesional con goleador destacado (Alpha Player1 lidera)
+        // Índices: 0-4 Alpha, 5-9 Beta, 10-14 Gamma, 15-19 Delta
+        var utc = DateTime.UtcNow;
+        // m1: Alpha 2-1 Beta. Alpha: Player1 (2 goles); Beta: Player1 (1)
+        db.MatchGoals.AddRange(
+            new MatchGoal { Id = Guid.NewGuid(), MatchId = m1.Id, ScorerId = players[0].Id, Minute = 18, IsOwnGoal = false, CreatedAtUtc = utc },
+            new MatchGoal { Id = Guid.NewGuid(), MatchId = m1.Id, ScorerId = players[0].Id, Minute = 64, IsOwnGoal = false, CreatedAtUtc = utc },
+            new MatchGoal { Id = Guid.NewGuid(), MatchId = m1.Id, ScorerId = players[5].Id, Minute = 52, IsOwnGoal = false, CreatedAtUtc = utc }
+        );
+        // m2: 0-0 sin goles
+        // m3: Alpha 3-2 Gamma. Alpha: Player1 (1), Player2 (1), Player4 (1); Gamma: Player1 (2)
+        db.MatchGoals.AddRange(
+            new MatchGoal { Id = Guid.NewGuid(), MatchId = m3.Id, ScorerId = players[0].Id, Minute = 9, IsOwnGoal = false, CreatedAtUtc = utc },
+            new MatchGoal { Id = Guid.NewGuid(), MatchId = m3.Id, ScorerId = players[1].Id, Minute = 38, IsOwnGoal = false, CreatedAtUtc = utc },
+            new MatchGoal { Id = Guid.NewGuid(), MatchId = m3.Id, ScorerId = players[3].Id, Minute = 72, IsOwnGoal = false, CreatedAtUtc = utc },
+            new MatchGoal { Id = Guid.NewGuid(), MatchId = m3.Id, ScorerId = players[10].Id, Minute = 44, IsOwnGoal = false, CreatedAtUtc = utc },
+            new MatchGoal { Id = Guid.NewGuid(), MatchId = m3.Id, ScorerId = players[10].Id, Minute = 81, IsOwnGoal = false, CreatedAtUtc = utc }
+        );
+
+        // Tarjetas de ejemplo (amarillas y rojas en partidos jugados)
+        var now = DateTime.UtcNow;
+        db.MatchCards.AddRange(
+            new MatchCard { Id = Guid.NewGuid(), MatchId = m1.Id, PlayerId = players[2].Id, CardType = CardType.Yellow, Minute = 35, CreatedAtUtc = now },
+            new MatchCard { Id = Guid.NewGuid(), MatchId = m1.Id, PlayerId = players[6].Id, CardType = CardType.Yellow, Minute = 68, CreatedAtUtc = now },
+            new MatchCard { Id = Guid.NewGuid(), MatchId = m1.Id, PlayerId = players[7].Id, CardType = CardType.Red, Minute = 89, CreatedAtUtc = now },
+            new MatchCard { Id = Guid.NewGuid(), MatchId = m2.Id, PlayerId = players[10].Id, CardType = CardType.Yellow, Minute = 22, CreatedAtUtc = now },
+            new MatchCard { Id = Guid.NewGuid(), MatchId = m2.Id, PlayerId = players[15].Id, CardType = CardType.Yellow, Minute = 55, CreatedAtUtc = now },
+            new MatchCard { Id = Guid.NewGuid(), MatchId = m3.Id, PlayerId = players[1].Id, CardType = CardType.Yellow, Minute = 40, CreatedAtUtc = now },
+            new MatchCard { Id = Guid.NewGuid(), MatchId = m3.Id, PlayerId = players[12].Id, CardType = CardType.Yellow, Minute = 60, CreatedAtUtc = now },
+            new MatchCard { Id = Guid.NewGuid(), MatchId = m3.Id, PlayerId = players[12].Id, CardType = CardType.Red, Minute = 61, CreatedAtUtc = now }
+        );
+
+        await db.SaveChangesAsync();
+    }
+
+    /// <summary>
+    /// Si faltan árbitros, goles o tarjetas, agrega datos de ejemplo (para BDs ya creadas).
+    /// </summary>
+    private static async Task EnsureSampleRefereesGoalsAndCardsAsync(AppDbContext db)
+    {
+        if (!await db.Referees.AnyAsync())
+        {
+            var r1 = new Referee { Id = Guid.NewGuid(), FirstName = "Carlos", LastName = "Ramos", LicenseNumber = "REF-001", CreatedAtUtc = DateTime.UtcNow };
+            var r2 = new Referee { Id = Guid.NewGuid(), FirstName = "María", LastName = "García", LicenseNumber = "REF-002", CreatedAtUtc = DateTime.UtcNow };
+            var r3 = new Referee { Id = Guid.NewGuid(), FirstName = "Luis", LastName = "Martínez", LicenseNumber = "REF-003", CreatedAtUtc = DateTime.UtcNow };
+            var r4 = new Referee { Id = Guid.NewGuid(), FirstName = "Ana", LastName = "López", LicenseNumber = "REF-004", CreatedAtUtc = DateTime.UtcNow };
+            db.Referees.AddRange(r1, r2, r3, r4);
+            await db.SaveChangesAsync();
+
+            var matchesToAssign = await db.Matches.OrderBy(m => m.ScheduledAtUtc).Take(4).ToListAsync();
+            var refs = new[] { r1, r2, r3, r4 };
+            for (var i = 0; i < Math.Min(matchesToAssign.Count, refs.Length); i++)
+            {
+                matchesToAssign[i].RefereeId = refs[i].Id;
+            }
+            await db.SaveChangesAsync();
+        }
+
+        if (!await db.MatchGoals.AnyAsync())
+        {
+            var completed = await db.Matches.Where(m => m.Status == MatchStatus.Completed && m.HomeScore != null && m.AwayScore != null)
+                .Include(m => m.HomeTeam).Include(m => m.AwayTeam).ToListAsync();
+            var utc = DateTime.UtcNow;
+            foreach (var m in completed)
+            {
+                var homePlayers = await db.Players.Where(p => p.TeamId == m.HomeTeamId).OrderBy(p => p.JerseyNumber).Take(5).ToListAsync();
+                var awayPlayers = await db.Players.Where(p => p.TeamId == m.AwayTeamId).OrderBy(p => p.JerseyNumber).Take(5).ToListAsync();
+                var h = m.HomeScore ?? 0;
+                var a = m.AwayScore ?? 0;
+                // Distribución profesional: goleador (primer jugador) marca más, resto repartido; minutos variados
+                var homeMinutes = new[] { 8, 23, 45, 64, 78 };
+                var awayMinutes = new[] { 15, 32, 51, 69, 88 };
+                for (var g = 0; g < h; g++)
+                {
+                    var scorerIdx = g < 2 && homePlayers.Count > 0 ? 0 : Math.Min(g, homePlayers.Count - 1);
+                    db.MatchGoals.Add(new MatchGoal { Id = Guid.NewGuid(), MatchId = m.Id, ScorerId = homePlayers[scorerIdx].Id, Minute = homeMinutes[g % homeMinutes.Length], IsOwnGoal = false, CreatedAtUtc = utc });
+                }
+                for (var g = 0; g < a; g++)
+                {
+                    var scorerIdx = g < 2 && awayPlayers.Count > 0 ? 0 : Math.Min(g, awayPlayers.Count - 1);
+                    db.MatchGoals.Add(new MatchGoal { Id = Guid.NewGuid(), MatchId = m.Id, ScorerId = awayPlayers[scorerIdx].Id, Minute = awayMinutes[g % awayMinutes.Length], IsOwnGoal = false, CreatedAtUtc = utc });
+                }
+            }
+            await db.SaveChangesAsync();
+        }
+
+        if (!await db.MatchCards.AnyAsync())
+        {
+            var matchesWithPlayers = await db.Matches.Where(m => m.Status == MatchStatus.Completed).Take(3).ToListAsync();
+            var now = DateTime.UtcNow;
+            foreach (var m in matchesWithPlayers)
+            {
+                var players = await db.Players.Where(p => p.TeamId == m.HomeTeamId || p.TeamId == m.AwayTeamId).Take(4).ToListAsync();
+                if (players.Count >= 2)
+                {
+                    db.MatchCards.Add(new MatchCard { Id = Guid.NewGuid(), MatchId = m.Id, PlayerId = players[0].Id, CardType = CardType.Yellow, Minute = 25, CreatedAtUtc = now });
+                    db.MatchCards.Add(new MatchCard { Id = Guid.NewGuid(), MatchId = m.Id, PlayerId = players[1].Id, CardType = CardType.Yellow, Minute = 70, CreatedAtUtc = now });
+                    if (players.Count >= 3)
+                        db.MatchCards.Add(new MatchCard { Id = Guid.NewGuid(), MatchId = m.Id, PlayerId = players[2].Id, CardType = CardType.Red, Minute = 85, CreatedAtUtc = now });
+                }
+            }
+            await db.SaveChangesAsync();
+        }
     }
 }

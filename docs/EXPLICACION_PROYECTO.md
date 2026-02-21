@@ -167,4 +167,4 @@ Se creó una solución con **cuatro capas** más tests:
 6. **Seed al arrancar:** Migrations + datos iniciales (4 equipos, 5 jugadores/equipo, 6 partidos, 3 con resultado) en el primer run.
 7. **REST y códigos HTTP:** 200, 201, 204, 400, 404, 409 según Result; formato de lista estándar (data, pageNumber, pageSize, totalRecords, totalPages).
 
-Con esto tienes el recorrido completo del proyecto y el porqué de cada decisión. Para más detalle técnico de capas y flujos, ver **docs/ARCHITECTURE.md**.
+Con esto se tiene el recorrido completo del proyecto y el porqué de cada decisión. Para más detalle técnico de capas y flujos, ver **docs/ARCHITECTURE.md**.

@@ -11,4 +11,6 @@ public record StandingRowDto(
     int GoalsFor,
     int GoalsAgainst,
     int GoalDifferential,
-    int Points);
+    int Points,
+    int YellowCards,
+    int RedCards);

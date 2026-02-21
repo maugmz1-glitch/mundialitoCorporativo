@@ -3,4 +3,4 @@ using MundialitoCorporativo.Application.Matches.Queries;
 
 namespace MundialitoCorporativo.Application.Matches.Commands;
 
-public record CreateMatchCommand(Guid HomeTeamId, Guid AwayTeamId, Guid? RefereeId, DateTime ScheduledAtUtc, string? Venue) : IRequest<MatchDto>;
+public record AddMatchCardCommand(Guid MatchId, Guid PlayerId, int CardType, int Minute) : IRequest<MatchCardDto>;

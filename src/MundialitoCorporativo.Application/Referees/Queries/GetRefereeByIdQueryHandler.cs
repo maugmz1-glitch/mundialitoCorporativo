@@ -1,6 +1,4 @@
 using MediatR;
-using Microsoft.EntityFrameworkCore;
-using MundialitoCorporativo.Application.Common;
 using MundialitoCorporativo.Application.Interfaces;
 using MundialitoCorporativo.Domain.Common;
 
@@ -8,14 +6,13 @@ namespace MundialitoCorporativo.Application.Referees.Queries;
 
 public class GetRefereeByIdQueryHandler : IRequestHandler<GetRefereeByIdQuery, Result<RefereeDto?>>
 {
-    private readonly IAppDbContext _db;
+    private readonly IRefereeReadRepository _readRepository;
 
-    public GetRefereeByIdQueryHandler(IAppDbContext db) => _db = db;
+    public GetRefereeByIdQueryHandler(IRefereeReadRepository readRepository) => _readRepository = readRepository;
 
     public async Task<Result<RefereeDto?>> Handle(GetRefereeByIdQuery request, CancellationToken cancellationToken)
     {
-        var r = await _db.Referees.AsNoTracking().FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken);
-        if (r == null) return Result.Success<RefereeDto?>(null);
-        return Result.Success(new RefereeDto(r.Id, r.FirstName, r.LastName, r.LicenseNumber, r.CreatedAtUtc));
+        var r = await _readRepository.GetByIdAsync(request.Id, cancellationToken);
+        return Result.Success<RefereeDto?>(r);
     }
 }

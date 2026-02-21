@@ -12,6 +12,7 @@ public class AppDbContext : DbContext, IAppDbContext
     public DbSet<Player> Players => Set<Player>();
     public DbSet<Match> Matches => Set<Match>();
     public DbSet<MatchGoal> MatchGoals => Set<MatchGoal>();
+    public DbSet<MatchCard> MatchCards => Set<MatchCard>();
     public DbSet<Referee> Referees => Set<Referee>();
     public DbSet<User> Users => Set<User>();
     public DbSet<IdempotencyRecord> IdempotencyRecords => Set<IdempotencyRecord>();
@@ -39,6 +40,13 @@ public class AppDbContext : DbContext, IAppDbContext
             e.Property(x => x.Venue).HasMaxLength(200);
             e.HasOne(x => x.HomeTeam).WithMany(x => x.HomeMatches).HasForeignKey(x => x.HomeTeamId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(x => x.AwayTeam).WithMany(x => x.AwayMatches).HasForeignKey(x => x.AwayTeamId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.Referee).WithMany(x => x.Matches).HasForeignKey(x => x.RefereeId).OnDelete(DeleteBehavior.SetNull);
+        });
+        modelBuilder.Entity<MatchCard>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.HasOne(x => x.Match).WithMany(x => x.Cards).HasForeignKey(x => x.MatchId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.Player).WithMany(x => x.Cards).HasForeignKey(x => x.PlayerId).OnDelete(DeleteBehavior.Restrict);
         });
         modelBuilder.Entity<MatchGoal>(e =>
         {
@@ -58,8 +66,8 @@ public class AppDbContext : DbContext, IAppDbContext
             e.HasKey(x => x.Id);
             e.Property(x => x.UserName).HasMaxLength(100).IsRequired();
             e.Property(x => x.Email).HasMaxLength(256);
-            e.Property(x => x.PasswordHash).HasMaxLength(2000).IsRequired();
-            e.Property(x => x.Salt).HasMaxLength(2000).IsRequired();
+            e.Property(x => x.PasswordHash).HasColumnType("nvarchar(max)").IsRequired();
+            e.Property(x => x.Salt).HasColumnType("nvarchar(max)").IsRequired();
             e.HasIndex(x => x.UserName).IsUnique();
         });
         modelBuilder.Entity<IdempotencyRecord>(e =>
