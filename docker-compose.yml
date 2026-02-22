@@ -52,6 +52,8 @@ services:
     environment:
       API_URL: http://api:8080
       NEXT_PUBLIC_API_URL: ""
+      # NextAuth: en producción define AUTH_SECRET (ej. en .env o secrets). Por defecto un valor para desarrollo.
+      AUTH_SECRET: ${AUTH_SECRET:-default-docker-dev-secret-min-32-chars-here}
     depends_on:
       - api
 

@@ -3,7 +3,40 @@
 import { useEffect, useState } from 'react';
 import { fetchApi, fetchPaged, postApi, patchApi, deleteApi } from '@/lib/api';
 import type { Paged } from '@/lib/api';
-import Loading from '../Loading';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { PageHeader } from '@/components/PageHeader';
 
 type Team = { id: string; name: string };
 type Referee = { id: string; firstName: string; lastName: string };
@@ -29,7 +62,7 @@ export default function MatchesPage() {
   const [teams, setTeams] = useState<Team[]>([]);
   const [referees, setReferees] = useState<Referee[]>([]);
   const [page, setPage] = useState(1);
-  const [status, setStatus] = useState<number | ''>('');
+  const [status, setStatus] = useState<string>('__all__');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState({ homeTeamId: '', awayTeamId: '', refereeId: '', scheduledAtUtc: '', venue: '' });
@@ -39,6 +72,7 @@ export default function MatchesPage() {
   const [cardMatch, setCardMatch] = useState<MatchDetail | null>(null);
   const [matchPlayers, setMatchPlayers] = useState<Player[]>([]);
   const [cardForm, setCardForm] = useState({ playerId: '', cardType: 0, minute: 0 });
+  const [createPopupOpen, setCreatePopupOpen] = useState(false);
 
   const loadTeams = async () => {
     const r = await fetchPaged<Team>('/api/teams', { pageSize: 100 });
@@ -57,7 +91,7 @@ export default function MatchesPage() {
       const r = await fetchPaged<Match>('/api/matches', {
         pageNumber: page,
         pageSize: 10,
-        status: status === '' ? undefined : status,
+        status: status === '__all__' ? undefined : Number(status),
       });
       setPaged(r);
     } catch (e) {
@@ -119,6 +153,7 @@ export default function MatchesPage() {
         venue: form.venue || null,
       }, `match-create-${Date.now()}`);
       setForm({ ...form, scheduledAtUtc: '', venue: '' });
+      setCreatePopupOpen(false);
       load();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Error al crear');
@@ -150,132 +185,219 @@ export default function MatchesPage() {
   };
 
   return (
-    <div>
-      <h1>Partidos</h1>
-      {error && <p className="error">{error}</p>}
-      <div className="card">
-        <select value={status} onChange={e => setStatus(e.target.value === '' ? '' : Number(e.target.value))}>
-          <option value="">Todos los estados</option>
-          {Object.entries(statusLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-        </select>
-      </div>
-      <div className="card">
-        <h2>Crear partido</h2>
-        <form onSubmit={handleCreate}>
-          <label>Equipo local</label>
-          <select value={form.homeTeamId} onChange={e => setForm(f => ({ ...f, homeTeamId: e.target.value }))} required>
-            {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-          </select>
-          <label>Equipo visitante</label>
-          <select value={form.awayTeamId} onChange={e => setForm(f => ({ ...f, awayTeamId: e.target.value }))} required>
-            {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-          </select>
-          <label>Árbitro</label>
-          <select value={form.refereeId} onChange={e => setForm(f => ({ ...f, refereeId: e.target.value }))}>
-            <option value="">Sin asignar</option>
-            {referees.map(r => <option key={r.id} value={r.id}>{r.firstName} {r.lastName}</option>)}
-          </select>
-          <label>Fecha y hora (UTC)</label>
-          <input type="datetime-local" value={form.scheduledAtUtc} onChange={e => setForm(f => ({ ...f, scheduledAtUtc: e.target.value }))} />
-          <label>Sede</label>
-          <input value={form.venue} onChange={e => setForm(f => ({ ...f, venue: e.target.value }))} />
-          <button type="submit" className="btn btn-primary">Crear</button>
-        </form>
-      </div>
-      {resultMatch && (
-        <div className="card">
-          <h2>Cargar resultado: {resultMatch.homeTeamName} vs {resultMatch.awayTeamName}</h2>
-          <form onSubmit={handleSetResult}>
-            <input type="number" min={0} value={resultHome} onChange={e => setResultHome(parseInt(e.target.value, 10) || 0)} />
-            <span> – </span>
-            <input type="number" min={0} value={resultAway} onChange={e => setResultAway(parseInt(e.target.value, 10) || 0)} />
-            <button type="submit" className="btn btn-primary">Guardar</button>
-            <button type="button" className="btn" onClick={() => setResultMatch(null)}>Cancelar</button>
-          </form>
+    <div className="space-y-8">
+      <PageHeader title="Partidos" description="Programar partidos, cargar resultados y tarjetas." />
+
+      {error && (
+        <div className="page-section">
+          <p className="text-sm text-destructive rounded-lg border border-destructive/20 bg-destructive/10 p-4">{error}</p>
         </div>
       )}
-      {cardMatch && (
-        <div className="card">
-          <h2>Tarjetas del partido: {cardMatch.homeTeamName} vs {cardMatch.awayTeamName}</h2>
-          {cardMatch.cards.length > 0 && (
-            <div className="table-wrap" style={{ marginBottom: '1rem' }}>
-              <table>
-                <thead>
-                  <tr><th>Jugador</th><th>Tipo</th><th>Min</th></tr>
-                </thead>
-                <tbody>
-                  {cardMatch.cards.map(c => (
-                    <tr key={c.id}>
-                      <td>{c.playerName}</td>
-                      <td>{cardTypeLabels[c.cardType] ?? c.cardType}</td>
-                      <td>{c.minute}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+
+      <section className="page-section" aria-label="Filtros">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Filtro</CardTitle>
+          <CardDescription>Filtrar por estado del partido.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap gap-4 items-end">
+            <div className="space-y-2 min-w-[180px]">
+              <Label>Estado</Label>
+              <Select value={status} onValueChange={setStatus}>
+                <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">Todos los estados</SelectItem>
+                  {Object.entries(statusLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
-          )}
-          <form onSubmit={handleAddCard}>
-            <label>Jugador</label>
-            <select value={cardForm.playerId} onChange={e => setCardForm(f => ({ ...f, playerId: e.target.value }))} required disabled={matchPlayers.length === 0}>
-              {matchPlayers.length === 0 && <option value="">Sin jugadores en los equipos</option>}
-              {matchPlayers.map(p => (
-                <option key={p.id} value={p.id}>{p.firstName} {p.lastName} ({p.teamName})</option>
-              ))}
-            </select>
-            <label>Tipo</label>
-            <select value={cardForm.cardType} onChange={e => setCardForm(f => ({ ...f, cardType: Number(e.target.value) }))}>
-              {Object.entries(cardTypeLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-            </select>
-            <label>Minuto</label>
-            <input type="number" min={0} max={999} value={cardForm.minute || ''} onChange={e => setCardForm(f => ({ ...f, minute: parseInt(e.target.value, 10) || 0 }))} />
-            <button type="submit" className="btn btn-primary" disabled={!cardForm.playerId || matchPlayers.length === 0}>Registrar tarjeta</button>
-            <button type="button" className="btn" onClick={() => setCardMatch(null)}>Cerrar</button>
-          </form>
+          </div>
+        </CardContent>
+      </Card>
+      </section>
+
+      {resultMatch && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Cargar resultado: {resultMatch.homeTeamName} vs {resultMatch.awayTeamName}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSetResult} className="flex flex-wrap gap-4 items-end">
+              <div className="flex items-center gap-2">
+                <Input type="number" min={0} className="w-20" value={resultHome} onChange={e => setResultHome(parseInt(e.target.value, 10) || 0)} />
+                <span>–</span>
+                <Input type="number" min={0} className="w-20" value={resultAway} onChange={e => setResultAway(parseInt(e.target.value, 10) || 0)} />
+              </div>
+              <Button type="submit">Guardar</Button>
+              <Button type="button" variant="outline" onClick={() => setResultMatch(null)}>Cancelar</Button>
+            </form>
+          </CardContent>
+        </Card>
+      )}
+
+      {cardMatch && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Tarjetas: {cardMatch.homeTeamName} vs {cardMatch.awayTeamName}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {cardMatch.cards.length > 0 && (
+              <Table>
+                <TableHeader>
+                  <TableRow><TableHead>Jugador</TableHead><TableHead>Tipo</TableHead><TableHead>Min</TableHead></TableRow>
+                </TableHeader>
+                <TableBody>
+                  {cardMatch.cards.map(c => (
+                    <TableRow key={c.id}>
+                      <TableCell>{c.playerName}</TableCell>
+                      <TableCell>{cardTypeLabels[c.cardType] ?? c.cardType}</TableCell>
+                      <TableCell>{c.minute}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+            <form onSubmit={handleAddCard} className="flex flex-wrap gap-4 items-end">
+              <div className="space-y-2 min-w-[200px]">
+                <Label>Jugador</Label>
+                <Select value={cardForm.playerId} onValueChange={v => setCardForm(f => ({ ...f, playerId: v }))} disabled={matchPlayers.length === 0}>
+                  <SelectTrigger><SelectValue placeholder={matchPlayers.length === 0 ? 'Sin jugadores' : 'Seleccionar'} /></SelectTrigger>
+                  <SelectContent>
+                    {matchPlayers.map(p => <SelectItem key={p.id} value={p.id}>{p.firstName} {p.lastName} ({p.teamName})</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2 min-w-[120px]">
+                <Label>Tipo</Label>
+                <Select value={String(cardForm.cardType)} onValueChange={v => setCardForm(f => ({ ...f, cardType: Number(v) }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(cardTypeLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2 min-w-[100px]">
+                <Label>Minuto</Label>
+                <Input type="number" min={0} max={999} value={cardForm.minute || ''} onChange={e => setCardForm(f => ({ ...f, minute: parseInt(e.target.value, 10) || 0 }))} />
+              </div>
+              <Button type="submit" disabled={!cardForm.playerId || matchPlayers.length === 0}>Registrar tarjeta</Button>
+              <Button type="button" variant="outline" onClick={() => setCardMatch(null)}>Cerrar</Button>
+            </form>
+          </CardContent>
+        </Card>
+      )}
+
+      {loading && (
+        <div className="page-section flex items-center gap-3 py-8 text-muted-foreground">
+          <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          <span>Cargando…</span>
         </div>
       )}
-      {loading && <Loading />}
+
       {paged && !loading && (
-        <>
-          <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Local</th>
-                <th>Resultado</th>
-                <th>Visitante</th>
-                <th>Árbitro</th>
-                <th>Fecha</th>
-                <th>Estado</th>
-                <th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {paged.data.map(m => (
-                <tr key={m.id}>
-                  <td>{m.homeTeamName}</td>
-                  <td>{m.homeScore != null && m.awayScore != null ? `${m.homeScore} – ${m.awayScore}` : '—'}</td>
-                  <td>{m.awayTeamName}</td>
-                  <td>{m.refereeName ?? '—'}</td>
-                  <td>{new Date(m.scheduledAtUtc).toLocaleString()}</td>
-                  <td>{statusLabels[m.status] ?? m.status}</td>
-                  <td>
-                    <button className="btn" onClick={() => openCardPanel(m)}>Tarjetas</button>
-                    {m.status !== 2 && <button className="btn" onClick={() => { setResultMatch(m); setResultHome(0); setResultAway(0); }}>Cargar resultado</button>}
-                    <button className="btn btn-danger" onClick={() => handleDelete(m.id)}>Eliminar</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <section className="page-section" aria-label="Listado de partidos">
+          <div className="flex justify-end mb-3">
+            <Button onClick={() => setCreatePopupOpen(true)}>Crear partido</Button>
           </div>
-          <div className="pagination">
-            <button disabled={page <= 1} onClick={() => setPage(p => p - 1)}>Anterior</button>
-            <span>Página {paged.pageNumber} de {paged.totalPages}</span>
-            <button disabled={page >= paged.totalPages} onClick={() => setPage(p => p + 1)}>Siguiente</button>
+          <Card>
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Local</TableHead>
+                    <TableHead>Resultado</TableHead>
+                    <TableHead>Visitante</TableHead>
+                    <TableHead>Árbitro</TableHead>
+                    <TableHead>Fecha</TableHead>
+                    <TableHead>Estado</TableHead>
+                    <TableHead className="w-[260px]">Acciones</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {paged.data.map(m => (
+                    <TableRow key={m.id}>
+                      <TableCell className="font-medium">{m.homeTeamName}</TableCell>
+                      <TableCell>{m.homeScore != null && m.awayScore != null ? `${m.homeScore} – ${m.awayScore}` : '—'}</TableCell>
+                      <TableCell className="font-medium">{m.awayTeamName}</TableCell>
+                      <TableCell className="text-muted-foreground">{m.refereeName ?? '—'}</TableCell>
+                      <TableCell className="text-muted-foreground text-sm">{new Date(m.scheduledAtUtc).toLocaleString()}</TableCell>
+                      <TableCell>{statusLabels[m.status] ?? m.status}</TableCell>
+                      <TableCell>
+                        <div className="flex gap-2 flex-wrap">
+                          <Button variant="outline" size="sm" onClick={() => openCardPanel(m)}>Tarjetas</Button>
+                          {m.status !== 2 && <Button variant="outline" size="sm" onClick={() => { setResultMatch(m); setResultHome(0); setResultAway(0); }}>Resultado</Button>}
+                          <Button variant="destructive" size="sm" onClick={() => handleDelete(m.id)}>Eliminar</Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+          <div className="flex flex-wrap items-center gap-4 border-t bg-muted/30 px-4 py-3">
+            <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>Anterior</Button>
+            <span className="text-sm text-muted-foreground">Página {paged.pageNumber} de {paged.totalPages}</span>
+            <Button variant="outline" size="sm" disabled={page >= paged.totalPages} onClick={() => setPage(p => p + 1)}>Siguiente</Button>
           </div>
-        </>
+        </section>
       )}
+
+      <Dialog open={createPopupOpen} onOpenChange={setCreatePopupOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Crear partido</DialogTitle>
+            <DialogDescription>Programa un nuevo partido entre dos equipos.</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleCreate} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Equipo local</Label>
+                <Select value={form.homeTeamId} onValueChange={v => setForm(f => ({ ...f, homeTeamId: v }))} required>
+                  <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
+                  <SelectContent>
+                    {teams.map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Equipo visitante</Label>
+                <Select value={form.awayTeamId} onValueChange={v => setForm(f => ({ ...f, awayTeamId: v }))} required>
+                  <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
+                  <SelectContent>
+                    {teams.map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Árbitro</Label>
+              <Select value={form.refereeId || '__none__'} onValueChange={v => setForm(f => ({ ...f, refereeId: v === '__none__' ? '' : v }))}>
+                <SelectTrigger><SelectValue placeholder="Sin asignar" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">Sin asignar</SelectItem>
+                  {referees.map(r => <SelectItem key={r.id} value={r.id}>{r.firstName} {r.lastName}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Fecha y hora (UTC)</Label>
+                <Input type="datetime-local" value={form.scheduledAtUtc} onChange={e => setForm(f => ({ ...f, scheduledAtUtc: e.target.value }))} />
+              </div>
+              <div className="space-y-2">
+                <Label>Sede</Label>
+                <Input value={form.venue} onChange={e => setForm(f => ({ ...f, venue: e.target.value }))} placeholder="Opcional" />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setCreatePopupOpen(false)}>Cancelar</Button>
+              <Button type="submit">Guardar</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

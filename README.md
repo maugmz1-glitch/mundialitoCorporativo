@@ -1,6 +1,6 @@
 # Mundialito
 
-Sistema de gestión de torneos: API .NET 8 (Clean Architecture, CQRS), frontend Next.js y SQL Server.
+Sistema de gestión de torneos: API .NET 8 (Clean Architecture, CQRS), frontend Next.js con **shadcn/ui** y SQL Server.
 
 ---
 
@@ -26,9 +26,10 @@ Sistema de gestión de torneos: API .NET 8 (Clean Architecture, CQRS), frontend 
 | Escritura | Entity Framework Core 8, SQL Server |
 | Lectura | Dapper (consultas optimizadas) |
 | Frontend | Next.js 14, React, TypeScript |
+| **UI (Frontend)** | **shadcn/ui** (Radix UI + Tailwind + CVA). Componentes en `frontend/src/components/ui/`. |
 | Infra | Docker, Docker Compose |
 
-**Conceptos:** Result pattern, idempotencia (`Idempotency-Key` en POST), paginación y filtros en listados.
+**Conceptos:** Result pattern, idempotencia (`Idempotency-Key` en POST), paginación y filtros en listados. La interfaz usa **shadcn/ui** (botones, cards, tablas, modales, formularios).
 
 ---
 
@@ -222,3 +223,6 @@ git push -u origin release
 
 O: `.\scripts\push-to-github.ps1 -GitHubUrl "https://github.com/TU_USUARIO/TU_REPO.git"`  
 Detalle en [docs/SUBIR_A_GITHUB.md](docs/SUBIR_A_GITHUB.md).
+
+para revisar la documentacion en swagger
+http://localhost:5000/swagger/index.html

@@ -3,6 +3,16 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -30,9 +40,11 @@ export default function RegisterPage() {
     }
     setLoading(true);
     try {
-      const res = await fetch('/api/auth/register', {
+      // Usar /api/v1/auth/register para que el proxy envíe al backend (NextAuth captura /api/auth/*).
+      const res = await fetch('/api/v1/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
           userName: userName.trim(),
           email: email.trim() || null,
@@ -53,57 +65,78 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="card" style={{ maxWidth: 400, margin: '2rem auto' }}>
-      <h1>Crear cuenta</h1>
-      <p style={{ color: 'var(--text-muted)', marginBottom: '1rem' }}>
-        Regístrate para poder ingresar al sistema.
-      </p>
-      {error && <p className="error">{error}</p>}
-      <form onSubmit={handleSubmit}>
-        <label>Nombre de usuario *</label>
-        <input
-          type="text"
-          value={userName}
-          onChange={e => setUserName(e.target.value)}
-          required
-          minLength={3}
-          placeholder="Mínimo 3 caracteres"
-          autoComplete="username"
-        />
-        <label>Correo (opcional)</label>
-        <input
-          type="email"
-          value={email}
-          onChange={e => setEmail(e.target.value)}
-          placeholder="tu@correo.com"
-          autoComplete="email"
-        />
-        <label>Contraseña *</label>
-        <input
-          type="password"
-          value={password}
-          onChange={e => setPassword(e.target.value)}
-          required
-          minLength={6}
-          placeholder="Mínimo 6 caracteres"
-          autoComplete="new-password"
-        />
-        <label>Confirmar contraseña *</label>
-        <input
-          type="password"
-          value={confirmPassword}
-          onChange={e => setConfirmPassword(e.target.value)}
-          required
-          placeholder="Repite la contraseña"
-          autoComplete="new-password"
-        />
-        <button type="submit" className="btn btn-primary" disabled={loading}>
-          {loading ? 'Creando cuenta…' : 'Crear cuenta'}
-        </button>
-      </form>
-      <p style={{ marginTop: '1rem', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
-        ¿Ya tienes cuenta? <Link href="/login">Iniciar sesión</Link>
-      </p>
+    <div className="mx-auto max-w-[420px] px-4 py-10">
+      <Card>
+        <CardHeader className="space-y-1.5">
+          <CardTitle className="text-xl">Crear cuenta</CardTitle>
+          <CardDescription className="text-base leading-relaxed">
+            Regístrate para poder ingresar al sistema.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+        {error && (
+          <p className="rounded-lg border border-destructive/20 bg-destructive/10 p-4 text-sm text-destructive">
+            {error}
+          </p>
+        )}
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div className="space-y-2">
+            <Label htmlFor="userName">Nombre de usuario *</Label>
+            <Input
+              id="userName"
+              value={userName}
+              onChange={e => setUserName(e.target.value)}
+              required
+              minLength={3}
+              placeholder="Mínimo 3 caracteres"
+              autoComplete="username"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="email">Correo (opcional)</Label>
+            <Input
+              id="email"
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              placeholder="tu@correo.com"
+              autoComplete="email"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="password">Contraseña *</Label>
+            <Input
+              id="password"
+              type="password"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              required
+              minLength={6}
+              placeholder="Mínimo 6 caracteres"
+              autoComplete="new-password"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="confirmPassword">Confirmar contraseña *</Label>
+            <Input
+              id="confirmPassword"
+              type="password"
+              value={confirmPassword}
+              onChange={e => setConfirmPassword(e.target.value)}
+              required
+              placeholder="Repite la contraseña"
+              autoComplete="new-password"
+            />
+          </div>
+          <Button type="submit" className="w-full" disabled={loading}>
+            {loading ? 'Creando cuenta…' : 'Crear cuenta'}
+          </Button>
+        </form>
+        <p className="mt-4 text-sm text-muted-foreground leading-relaxed">
+          ¿Ya tienes cuenta? <Link href="/login" className="font-medium text-primary hover:underline">Iniciar sesión</Link>
+        </p>
+        </CardContent>
+      </Card>
     </div>
   );
 }

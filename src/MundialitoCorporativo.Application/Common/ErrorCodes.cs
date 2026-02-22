@@ -6,4 +6,5 @@ public static class ErrorCodes
     public const string Conflict = "CONFLICT";
     public const string Validation = "VALIDATION";
     public const string Duplicate = "DUPLICATE";
+    public const string Unauthorized = "UNAUTHORIZED";
 }

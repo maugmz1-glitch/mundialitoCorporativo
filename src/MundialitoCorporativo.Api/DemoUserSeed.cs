@@ -1,7 +1,6 @@
 using Microsoft.Data.SqlClient;
-using Microsoft.Extensions.Configuration;
 using Microsoft.EntityFrameworkCore;
-using MundialitoCorporativo.Api.Services;
+using Microsoft.Extensions.Configuration;
 using MundialitoCorporativo.Application.Interfaces;
 using MundialitoCorporativo.Domain.Entities;
 using MundialitoCorporativo.Infrastructure.Persistence;
@@ -21,6 +20,7 @@ public static class DemoUserSeed
         using var scope = host.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<IAppDbContext>();
         var configuration = scope.ServiceProvider.GetRequiredService<IConfiguration>();
+        var passwordHasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher>();
 
         // Asegurar que PasswordHash y Salt sean nvarchar(max) con conexión propia (evita truncado si la migración no se aplicó).
         var connStr = configuration.GetConnectionString("DefaultConnection");
@@ -51,7 +51,7 @@ public static class DemoUserSeed
 
         if (await db.Users.AnyAsync()) return;
 
-        var (hash, salt) = PasswordHasher.HashPassword(DemoPassword);
+        var (hash, salt) = passwordHasher.HashPassword(DemoPassword);
         var user = new User
         {
             Id = Guid.NewGuid(),

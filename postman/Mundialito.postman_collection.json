@@ -16,10 +16,44 @@
       "item": [
         {
           "name": "Register",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201 Created', function(){ pm.response.to.have.status(201); });",
+                  "var j = pm.response.json();",
+                  "pm.test('Response has userName and message', function(){",
+                  "  pm.expect(j).to.have.property('userName');",
+                  "  pm.expect(j).to.have.property('message');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": { "mode": "raw", "raw": "{\"userName\":\"testuser\",\"email\":\"test@example.com\",\"password\":\"Test123!\"}" },
+            "url": "{{baseUrl}}/api/auth/register"
+          }
+        },
+        {
+          "name": "Register (validación 400 - usuario corto)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"userName\":\"ab\",\"email\":\"a@b.com\",\"password\":\"Pass123!\"}" },
+            "url": "{{baseUrl}}/api/auth/register"
+          }
+        },
+        {
+          "name": "Register (409 usuario duplicado)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"userName\":\"testuser\",\"email\":\"otro@example.com\",\"password\":\"Test123!\"}" },
             "url": "{{baseUrl}}/api/auth/register"
           }
         },
