@@ -134,12 +134,12 @@ app.UseSwaggerUI(c =>
 
 // Errores no controlados: devolver 500 en JSON para que el frontend muestre el mensaje.
 app.UseMiddleware<MundialitoCorporativo.Api.Middleware.ExceptionHandlingMiddleware>();
-// Idempotencia: POST con cabecera Idempotency-Key devuelve la misma respuesta en reintentos sin duplicar.
-app.UseMiddleware<MundialitoCorporativo.Api.Middleware.IdempotencyMiddleware>();
 app.UseCors();
 app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
+// Idempotencia: POST con cabecera Idempotency-Key devuelve la misma respuesta en reintentos sin duplicar.
+app.UseMiddleware<MundialitoCorporativo.Api.Middleware.IdempotencyMiddleware>();
 app.MapControllers();
 app.MapGet("/health", () => Results.Ok(new { status = "healthy" }));
 

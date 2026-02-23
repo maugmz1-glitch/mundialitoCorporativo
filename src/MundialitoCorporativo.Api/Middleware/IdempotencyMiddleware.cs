@@ -23,16 +23,16 @@ public class IdempotencyMiddleware
             return;
         }
         key = key.Trim();
-        var path = context.Request.Path.Value ?? "/";
+        var path = (context.Request.Path.Value ?? "/") + (context.Request.QueryString.HasValue ? context.Request.QueryString.Value : string.Empty);
         var method = context.Request.Method;
 
         // ¿Ya tenemos una respuesta guardada para esta clave + método + ruta?
         var existing = await store.GetAsync(key, method, path, context.RequestAborted);
         if (existing != null)
         {
-            // Replay: devolvemos exactamente la misma respuesta (mismo status y body).
+            // Replay: devolvemos la misma respuesta (mismo status, body y Content-Type si está disponible).
             context.Response.StatusCode = existing.StatusCode;
-            context.Response.ContentType = "application/json";
+            context.Response.ContentType = existing.ContentType ?? "application/json";
             if (!string.IsNullOrEmpty(existing.Body))
                 await context.Response.WriteAsync(existing.Body);
             return;
@@ -52,6 +52,11 @@ public class IdempotencyMiddleware
         await newBodyStream.CopyToAsync(originalBodyStream);
         context.Response.Body = originalBodyStream;
 
-        await store.StoreAsync(key, method, path, context.Response.StatusCode, responseBody, context.RequestAborted);
+        // Solo guardamos respuestas exitosas (2xx) para evitar cachear errores transitorios.
+        var status = context.Response.StatusCode;
+        if (status >= 200 && status < 300)
+        {
+            await store.StoreAsync(key, method, path, status, responseBody, context.Response.ContentType, context.RequestAborted);
+        }
     }
 }

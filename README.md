@@ -70,6 +70,15 @@ Sistema de gestión de torneos: API .NET 8 (Clean Architecture, CQRS), frontend 
 
 ---
 
+## Notas sobre idempotencia (cambios recientes)
+
+- El middleware de idempotencia aplica a `POST` cuando el cliente envía la cabecera `Idempotency-Key`. Para mayor seguridad, el middleware ahora se ejecuta después de la autenticación y autorización, de forma que los replays respeten la identidad del solicitante.
+- La clave de idempotencia considera ahora la ruta y la `QueryString` (ruta + query) para distinguir solicitudes con los mismos path pero distintos parámetros.
+- Al hacer replay se restaura también el `Content-Type` original de la respuesta; el store guarda `ResponseContentType` junto con el `status` y el `body`.
+- Para evitar cachear errores transitorios, solo se persisten respuestas exitosas (códigos 2xx).
+- Se añadió una migración (`AddResponseContentTypeToIdempotencyRecords`) que crea la columna `ResponseContentType` en la tabla `IdempotencyRecords`. Asegúrate de ejecutar las migraciones en cada entorno antes de desplegar.
+
+
 ## Estructura del repositorio
 
 ```
