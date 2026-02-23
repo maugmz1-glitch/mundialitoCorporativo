@@ -1,6 +1,6 @@
 namespace MundialitoCorporativo.Domain.Entities;
 
-public class Match
+public class Match : MundialitoCorporativo.Domain.Common.IAuditable
 {
     public Guid Id { get; set; }
     public Guid HomeTeamId { get; set; }
@@ -13,6 +13,8 @@ public class Match
     public int? AwayScore { get; set; }
     public DateTime CreatedAtUtc { get; set; }
     public DateTime? UpdatedAtUtc { get; set; }
+    public string? CreatedBy { get; set; }
+    public string? UpdatedBy { get; set; }
 
     public Team HomeTeam { get; set; } = null!;
     public Team AwayTeam { get; set; } = null!;

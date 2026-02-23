@@ -84,6 +84,9 @@ builder.Services.AddAuthentication(Microsoft.AspNetCore.Authentication.JwtBearer
     });
 builder.Services.AddAuthorization();
 builder.Services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
+// Expose current user via IHttpContextAccessor for auditing
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<MundialitoCorporativo.Application.Interfaces.ICurrentUserService, MundialitoCorporativo.Api.Services.CurrentUserService>();
 
 // Compresión de respuestas (gzip/brotli) para reducir tiempo de transferencia.
 builder.Services.AddResponseCompression(options =>
