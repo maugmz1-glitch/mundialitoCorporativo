@@ -12,6 +12,8 @@ FROM base AS build
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
+# NextAuth exige AUTH_SECRET en tiempo de build; aquí es solo placeholder. El valor real debe inyectarse en runtime (ej. docker-compose).
+ENV AUTH_SECRET=build-placeholder-dummy-secret-min-32-chars-for-docker-build
 RUN npm run build
 
 FROM base AS runner

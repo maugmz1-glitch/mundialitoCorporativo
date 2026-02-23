@@ -77,6 +77,7 @@ public class AppDbContext : DbContext, IAppDbContext
             e.Property(x => x.RequestMethod).HasMaxLength(10).IsRequired();
             e.Property(x => x.RequestPath).HasMaxLength(500).IsRequired();
             e.Property(x => x.ResponseBody).HasMaxLength(8000);
+            e.Property(x => x.ResponseContentType).HasMaxLength(200);
             e.HasIndex(x => new { x.IdempotencyKey, x.RequestMethod, x.RequestPath }).IsUnique();
         });
     }

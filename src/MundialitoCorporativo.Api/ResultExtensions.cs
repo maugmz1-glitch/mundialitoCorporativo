@@ -19,6 +19,7 @@ public static class ResultExtensions
         {
             ErrorCodes.NotFound => new NotFoundObjectResult(new { message = result.Message, code = result.ErrorCode }),
             ErrorCodes.Conflict or ErrorCodes.Duplicate => new ConflictObjectResult(new { message = result.Message, code = result.ErrorCode }),
+            ErrorCodes.Unauthorized => new UnauthorizedObjectResult(new { message = result.Message, code = result.ErrorCode }),
             _ => new BadRequestObjectResult(new { message = result.Message, code = result.ErrorCode })
         };
     }

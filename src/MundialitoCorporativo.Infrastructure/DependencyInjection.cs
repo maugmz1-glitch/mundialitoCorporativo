@@ -3,6 +3,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using MundialitoCorporativo.Application.Interfaces;
 using MundialitoCorporativo.Infrastructure.Persistence;
+using MundialitoCorporativo.Infrastructure.Services;
 
 namespace MundialitoCorporativo.Infrastructure;
 
@@ -24,6 +25,7 @@ public static class DependencyInjection
         services.AddScoped<IStandingsReadRepository, StandingsReadRepository>();
         services.AddScoped<IRefereeReadRepository, RefereeReadRepository>();
         services.AddScoped<IIdempotencyStore, IdempotencyStore>();
+        services.AddScoped<IPasswordHasher, PasswordHasherService>();
         return services;
     }
 }

@@ -1,53 +1,30 @@
+import { signOut } from 'next-auth/react';
+
 const API = process.env.NEXT_PUBLIC_API_URL || '';
-const AUTH_TOKEN_KEY = 'mundialito_token';
-const AUTH_USER_KEY = 'mundialito_user';
 
-// sessionStorage: al cerrar la pestaña o el navegador la sesión se pierde y el usuario debe volver a iniciar sesión.
-const authStorage = typeof window !== 'undefined' ? sessionStorage : null;
-
-export function getAuthToken(): string | null {
-  return authStorage?.getItem(AUTH_TOKEN_KEY) ?? null;
-}
-export function getAuthUser(): string | null {
-  return authStorage?.getItem(AUTH_USER_KEY) ?? null;
-}
-export function setAuth(token: string, userName: string): void {
-  if (authStorage) {
-    authStorage.setItem(AUTH_TOKEN_KEY, token);
-    authStorage.setItem(AUTH_USER_KEY, userName);
-  }
-}
-export function clearAuth(): void {
-  if (authStorage) {
-    authStorage.removeItem(AUTH_TOKEN_KEY);
-    authStorage.removeItem(AUTH_USER_KEY);
-  }
-}
-
-/** Rutas a la API. La backend acepta tanto /api/... como /api/v1/... */
+/** Rutas a la API. Las peticiones pasan por el proxy Next.js; el token se inyecta en servidor (cookie httpOnly). */
 function apiPath(path: string): string {
   return path.startsWith('/api') ? path : `/api/${path.replace(/^\//, '')}`;
 }
 
 function authHeaders(): Record<string, string> {
-  const token = getAuthToken();
-  const h: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (token) h['Authorization'] = `Bearer ${token}`;
-  return h;
+  return { 'Content-Type': 'application/json' };
 }
 
 export type Paged<T> = { data: T[]; pageNumber: number; pageSize: number; totalRecords: number; totalPages: number };
 
-/** Si la API devuelve 401, borra la sesión y redirige a login (token expirado o inválido). */
+/** Si la API devuelve 401, cierra sesión (cookie) y redirige a login con mensaje (misma origen, evita 0.0.0.0). */
 function handleUnauthorized(): void {
-  clearAuth();
-  if (typeof window !== 'undefined') window.location.href = '/login';
+  signOut({ redirect: false }).then(() => {
+    if (typeof window !== 'undefined') window.location.href = '/login?error=session_expired';
+  });
 }
 
 export async function fetchApi<T>(path: string, options?: RequestInit): Promise<T> {
   const url = `${API}${apiPath(path)}`;
   const res = await fetch(url, {
     ...options,
+    credentials: 'include',
     headers: { ...authHeaders(), ...options?.headers } as HeadersInit,
   });
   if (res.status === 401) {
@@ -85,7 +62,7 @@ export async function patchApi<T>(path: string, body: unknown): Promise<T> {
 }
 
 export async function deleteApi(path: string): Promise<void> {
-  const res = await fetch(`${API}${apiPath(path)}`, { method: 'DELETE', headers: authHeaders() });
+  const res = await fetch(`${API}${apiPath(path)}`, { method: 'DELETE', credentials: 'include', headers: authHeaders() });
   if (res.status === 401) {
     handleUnauthorized();
     throw new Error('Sesión expirada. Inicia sesión de nuevo.');

@@ -1,6 +1,6 @@
 # Mundialito
 
-Sistema de gestión de torneos: API .NET 8 (Clean Architecture, CQRS), frontend Next.js y SQL Server.
+Sistema de gestión de torneos: API .NET 8 (Clean Architecture, CQRS), frontend Next.js con **shadcn/ui** y SQL Server.
 
 ---
 
@@ -27,9 +27,10 @@ Sistema de gestión de torneos: API .NET 8 (Clean Architecture, CQRS), frontend 
 | Escritura | Entity Framework Core 8, SQL Server |
 | Lectura | Dapper (consultas optimizadas) |
 | Frontend | Next.js 14, React, TypeScript |
+| **UI (Frontend)** | **shadcn/ui** (Radix UI + Tailwind + CVA). Componentes en `frontend/src/components/ui/`. |
 | Infra | Docker, Docker Compose |
 
-**Conceptos:** Result pattern, idempotencia (`Idempotency-Key` en POST), paginación y filtros en listados.
+**Conceptos:** Result pattern, idempotencia (`Idempotency-Key` en POST), paginación y filtros en listados. La interfaz usa **shadcn/ui** (botones, cards, tablas, modales, formularios).
 
 ---
 
@@ -79,6 +80,15 @@ Sistema de gestión de torneos: API .NET 8 (Clean Architecture, CQRS), frontend 
 | **DELETE** | Eliminación (idempotente; 204 No Content) | `DELETE /api/teams/{id}`; repetir el mismo DELETE → 404 |
 
 ---
+
+## Notas sobre idempotencia (cambios recientes)
+
+- El middleware de idempotencia aplica a `POST` cuando el cliente envía la cabecera `Idempotency-Key`. Para mayor seguridad, el middleware ahora se ejecuta después de la autenticación y autorización, de forma que los replays respeten la identidad del solicitante.
+- La clave de idempotencia considera ahora la ruta y la `QueryString` (ruta + query) para distinguir solicitudes con los mismos path pero distintos parámetros.
+- Al hacer replay se restaura también el `Content-Type` original de la respuesta; el store guarda `ResponseContentType` junto con el `status` y el `body`.
+- Para evitar cachear errores transitorios, solo se persisten respuestas exitosas (códigos 2xx).
+- Se añadió una migración (`AddResponseContentTypeToIdempotencyRecords`) que crea la columna `ResponseContentType` en la tabla `IdempotencyRecords`. Asegúrate de ejecutar las migraciones en cada entorno antes de desplegar.
+
 
 ## Estructura del repositorio
 
@@ -233,3 +243,6 @@ git push -u origin release
 
 O: `.\scripts\push-to-github.ps1 -GitHubUrl "https://github.com/TU_USUARIO/TU_REPO.git"`  
 Detalle en [docs/SUBIR_A_GITHUB.md](docs/SUBIR_A_GITHUB.md).
+
+para revisar la documentacion en swagger
+http://localhost:5000/swagger/index.html

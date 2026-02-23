@@ -1,12 +1,21 @@
 'use client';
 
 import { Suspense, useState, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { setAuth } from '@/lib/api';
+import { signIn } from 'next-auth/react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 
 function LoginForm() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -15,31 +24,63 @@ function LoginForm() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (searchParams.get('registered') === '1') setSuccess('Cuenta creada. Ya puedes iniciar sesión.');
+    if (searchParams.get('registered') === '1') {
+      setSuccess('Cuenta creada. Ya puedes iniciar sesión.');
+      setError(null);
+    } else if (searchParams.get('loggedout') === '1') {
+      setSuccess('Sesión cerrada correctamente.');
+      setError(null);
+    } else if (searchParams.get('error') === 'session_expired') {
+      setError('Tu sesión ha expirado. Vuelve a iniciar sesión.');
+      setSuccess(null);
+    }
   }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setSuccess(null);
+
+    const user = username.trim();
+    if (!user) {
+      setError('El usuario es obligatorio.');
+      return;
+    }
+    if (user.length < 3) {
+      setError('El usuario debe tener al menos 3 caracteres.');
+      return;
+    }
+    if (!password) {
+      setError('La contraseña es obligatoria.');
+      return;
+    }
+    if (password.length < 6) {
+      setError('La contraseña debe tener al menos 6 caracteres.');
+      return;
+    }
+
     setLoading(true);
     try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
+      const result = await signIn('credentials', {
+        username: user,
+        password,
+        redirect: false,
       });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error((data as { message?: string }).message || 'Usuario o contraseña incorrectos.');
+      if (result?.error) {
+        setError(result.error === 'CredentialsSignin' ? 'Usuario o contraseña incorrectos.' : result.error);
+        setLoading(false);
+        return;
       }
-      const data = await res.json() as { token: string; userName: string };
-      setAuth(data.token, data.userName);
-      router.push('/');
-      router.refresh();
+      if (result?.ok) {
+        setSuccess('Sesión iniciada. Redirigiendo…');
+        window.location.href = '/';
+        return;
+      }
+      setError('No se pudo iniciar sesión. Intenta de nuevo.');
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'Error al iniciar sesión.';
       if (msg === 'fetch failed' || msg === 'Failed to fetch' || msg.includes('NetworkError')) {
-        setError('No se pudo conectar con el servidor. Comprueba que la API y el frontend estén en ejecución (p. ej. docker compose up).');
+        setError('No se pudo conectar con el servidor. Comprueba que la API esté en ejecución (puerto 5000 o docker compose up).');
       } else {
         setError(msg);
       }
@@ -49,47 +90,73 @@ function LoginForm() {
   };
 
   return (
-    <div className="card" style={{ maxWidth: 400, margin: '2rem auto' }}>
-      <h1>Iniciar sesión</h1>
-      <p style={{ color: 'var(--text-muted)', marginBottom: '1rem' }}>
-        Ingresa con tu usuario y contraseña. Si no tienes cuenta, créala primero.
-      </p>
-      {success && <p className="success" style={{ color: 'var(--success, green)', marginBottom: '0.5rem' }}>{success}</p>}
-      {error && <p className="error">{error}</p>}
-      <form onSubmit={handleSubmit}>
-        <label>Usuario</label>
-        <input
-          type="text"
-          value={username}
-          onChange={e => setUsername(e.target.value)}
-          required
-          autoComplete="username"
-        />
-        <label>Contraseña</label>
-        <input
-          type="password"
-          value={password}
-          onChange={e => setPassword(e.target.value)}
-          required
-          autoComplete="current-password"
-        />
-        <button type="submit" className="btn btn-primary" disabled={loading}>
-          {loading ? 'Entrando…' : 'Entrar'}
-        </button>
-      </form>
-      <p style={{ marginTop: '1rem', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
-        ¿No tienes cuenta? <Link href="/register">Crear cuenta</Link>
-      </p>
-      <p style={{ marginTop: '0.5rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-        Usuario demo: <strong>demo</strong> / <strong>Demo123!</strong>
-      </p>
+    <div className="mx-auto max-w-[420px] px-4 py-10">
+      <Card>
+        <CardHeader className="space-y-1.5">
+          <CardTitle className="text-xl">Iniciar sesión</CardTitle>
+          <CardDescription className="text-base leading-relaxed">
+            Ingresa con tu usuario y contraseña. Si no tienes cuenta, créala primero.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+        {success && (
+          <p className="rounded-lg border border-primary/20 bg-primary/10 p-4 text-sm text-primary">
+            {success}
+          </p>
+        )}
+        {error && (
+          <p className="rounded-lg border border-destructive/20 bg-destructive/10 p-4 text-sm text-destructive">
+            {error}
+          </p>
+        )}
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div className="space-y-2">
+            <Label htmlFor="username">Usuario</Label>
+            <Input
+              id="username"
+              type="text"
+              value={username}
+              onChange={e => setUsername(e.target.value)}
+              required
+              autoComplete="username"
+              placeholder="Usuario"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="password">Contraseña</Label>
+            <Input
+              id="password"
+              type="password"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              required
+              autoComplete="current-password"
+              placeholder="Contraseña"
+            />
+          </div>
+          <Button type="submit" className="w-full" disabled={loading}>
+            {loading ? 'Entrando…' : 'Entrar'}
+          </Button>
+        </form>
+        <p className="mt-4 text-sm text-muted-foreground leading-relaxed">
+          ¿No tienes cuenta? <Link href="/register" className="font-medium text-primary hover:underline">Crear cuenta</Link>
+        </p>
+        <p className="text-sm text-muted-foreground leading-relaxed">
+          Usuario demo: <strong>demo</strong> / <strong>Demo123!</strong>
+        </p>
+        </CardContent>
+      </Card>
     </div>
   );
 }
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<div className="card" style={{ maxWidth: 400, margin: '2rem auto' }}>Cargando…</div>}>
+    <Suspense fallback={
+      <div className="mx-auto max-w-[420px] px-4 py-10">
+        <Card><CardContent className="py-8 text-center text-muted-foreground">Cargando…</CardContent></Card>
+      </div>
+    }>
       <LoginForm />
     </Suspense>
   );

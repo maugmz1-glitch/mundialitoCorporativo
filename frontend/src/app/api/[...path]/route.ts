@@ -1,12 +1,20 @@
 /**
  * Proxy de /api/* al backend. Usa API_URL en runtime (Docker: http://api:8080).
- * Evita depender de rewrites en next.config.js que se evalúan en build time.
+ * El token de sesión (httpOnly cookie) se inyecta aquí en el servidor; el cliente nunca ve el JWT.
  */
 import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@/auth';
 
 const BACKEND = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:5000';
 
-type Params = { path: string[] };
+type Params = { path?: string[] } | Promise<{ path?: string[] }>;
+
+async function resolvePath(params: Params): Promise<string[]> {
+  const resolved = typeof (params as Promise<unknown>)?.then === 'function' ? await (params as Promise<{ path?: string[] }>) : (params as { path?: string[] });
+  const path = resolved?.path;
+  if (Array.isArray(path) && path.length > 0) return path;
+  return [];
+}
 
 export async function GET(request: NextRequest, { params }: { params: Params }) {
   return proxy(request, params, 'GET');
@@ -30,18 +38,27 @@ export async function DELETE(request: NextRequest, { params }: { params: Params 
 
 async function proxy(
   request: NextRequest,
-  { path }: { path: string[] },
+  params: Params,
   method: string
 ): Promise<NextResponse> {
-  const segment = path?.length ? path.join('/') : '';
+  const path = await resolvePath(params);
+  const segment = path.join('/');
+  if (!segment) {
+    return NextResponse.json({ message: 'Ruta de API no válida.' }, { status: 404 });
+  }
   const url = `${BACKEND.replace(/\/$/, '')}/api/${segment}${request.nextUrl.search}`;
 
   const headers = new Headers();
   request.headers.forEach((value, key) => {
     const lower = key.toLowerCase();
-    if (lower === 'host' || lower === 'connection') return;
+    if (lower === 'host' || lower === 'connection' || lower === 'authorization') return;
     headers.set(key, value);
   });
+
+  const session = await auth();
+  if (session?.backendToken) {
+    headers.set('Authorization', `Bearer ${session.backendToken}`);
+  }
 
   let body: string | undefined;
   if (method !== 'GET' && method !== 'HEAD') {

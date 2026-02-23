@@ -50,6 +50,10 @@ namespace MundialitoCorporativo.Infrastructure.Migrations
                         .HasMaxLength(8000)
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("ResponseContentType")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
                     b.Property<int>("ResponseStatusCode")
                         .HasColumnType("int");
 

@@ -33,7 +33,7 @@ public class IdempotencyTests
         {
             await db.Database.EnsureCreatedAsync();
             var store = new IdempotencyStore(db);
-            await store.StoreAsync("key2", "POST", "/api/teams", 201, "{\"id\":\"x\"}");
+            await store.StoreAsync("key2", "POST", "/api/teams", 201, "{\"id\":\"x\"}", "application/json");
         }
         await using (var db = new AppDbContext(options))
         {
@@ -59,7 +59,7 @@ public class IdempotencyTests
         {
             await db.Database.EnsureCreatedAsync();
             var store = new IdempotencyStore(db);
-            await store.StoreAsync("idem-key-1", "POST", "/api/teams", 201, "{\"id\":\"abc\",\"name\":\"Team\"}");
+            await store.StoreAsync("idem-key-1", "POST", "/api/teams", 201, "{\"id\":\"abc\",\"name\":\"Team\"}", "application/json");
         }
         int firstStatusCode;
         string? firstBody;
@@ -93,7 +93,7 @@ public class IdempotencyTests
         {
             await db.Database.EnsureCreatedAsync();
             var store = new IdempotencyStore(db);
-            await store.StoreAsync("k", "POST", "/api/teams", 201, "{}");
+            await store.StoreAsync("k", "POST", "/api/teams", 201, "{}", "application/json");
         }
         await using (var db = new AppDbContext(options))
         {
