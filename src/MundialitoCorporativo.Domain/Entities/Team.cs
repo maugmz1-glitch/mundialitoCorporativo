@@ -1,12 +1,14 @@
 namespace MundialitoCorporativo.Domain.Entities;
 
-public class Team
+public class Team : MundialitoCorporativo.Domain.Common.IAuditable
 {
     public Guid Id { get; set; }
     public string Name { get; set; } = string.Empty;
     public string? LogoUrl { get; set; }
     public DateTime CreatedAtUtc { get; set; }
     public DateTime? UpdatedAtUtc { get; set; }
+    public string? CreatedBy { get; set; }
+    public string? UpdatedBy { get; set; }
 
     public ICollection<Player> Players { get; set; } = new List<Player>();
     public ICollection<Match> HomeMatches { get; set; } = new List<Match>();
